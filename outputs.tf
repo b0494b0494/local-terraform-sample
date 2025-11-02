@@ -62,3 +62,18 @@ output "role_name" {
   description = "Role name"
   value       = kubernetes_role.app_role.metadata[0].name
 }
+
+output "prometheus_enabled" {
+  description = "Whether Prometheus is enabled"
+  value       = var.enable_prometheus
+}
+
+output "prometheus_service" {
+  description = "Prometheus service name (if enabled)"
+  value       = var.enable_prometheus ? kubernetes_service.prometheus[0].metadata[0].name : null
+}
+
+output "prometheus_namespace" {
+  description = "Prometheus namespace"
+  value       = var.enable_prometheus ? kubernetes_namespace.monitoring.metadata[0].name : null
+}

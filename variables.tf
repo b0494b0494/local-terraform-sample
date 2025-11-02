@@ -110,3 +110,10 @@ variable "storage_host_path" {
   type        = string
   default     = "/tmp/k8s-storage"
 }
+
+# Monitoring Variables
+variable "enable_prometheus" {
+  description = "Enable Prometheus monitoring"
+  type        = bool
+  default     = false
+}

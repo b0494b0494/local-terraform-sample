@@ -73,6 +73,12 @@ resource "kubernetes_deployment" "sample_app" {
           env     = var.environment
           version = var.app_version
         }
+        annotations = {
+          # Prometheus scraping annotations
+          "prometheus.io/scrape" = var.enable_prometheus ? "true" : "false"
+          "prometheus.io/port"   = "8080"
+          "prometheus.io/path"   = "/metrics"
+        }
       }
 
       spec {
