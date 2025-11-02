@@ -13,6 +13,7 @@ from functools import wraps
 import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
+import auth
 
 # ロギング設定
 logging.basicConfig(
@@ -144,6 +145,7 @@ def cache_response(ttl=REDIS_TTL):
 
 @app.route('/')
 @cache_response(ttl=60)  # 1分間キャッシュ
+@auth.rate_limit(max_requests=100, window_seconds=60)
 def hello():
     logger.info(f"GET / - Request from {request.remote_addr}")
     return jsonify({
@@ -153,7 +155,8 @@ def hello():
         'version': APP_VERSION,
         'environment': ENVIRONMENT,
         'timestamp': datetime.utcnow().isoformat(),
-        'cached': False  # キャッシュから取得された場合はTrueになる
+        'cached': False,  # キャッシュから取得された場合はTrueになる
+        'authenticated': getattr(g, 'authenticated', False)
     })
 
 @app.route('/health')
@@ -338,6 +341,118 @@ def db_query():
         return jsonify({
             'error': str(e)
         }), 500
+
+# Authentication Endpoints
+@app.route('/auth/login', methods=['POST'])
+def login():
+    """Login endpoint - returns JWT token"""
+    try:
+        data = request.json or {}
+        username = data.get('username', '')
+        password = data.get('password', '')
+        
+        # Simple demo authentication (in production, check against database)
+        # Demo credentials: user: admin, password: admin123
+        if username == 'admin' and password == 'admin123':
+            token = auth.create_jwt_token(username, roles=['admin', 'user'])
+            api_key = auth.register_api_key(username, roles=['admin', 'user'])
+            
+            return jsonify({
+                'status': 'success',
+                'token': token,
+                'api_key': api_key,
+                'user': username,
+                'roles': ['admin', 'user'],
+                'expires_in': auth.JWT_EXPIRATION_HOURS * 3600
+            }), 200
+        elif username == 'user' and password == 'user123':
+            token = auth.create_jwt_token(username, roles=['user'])
+            api_key = auth.register_api_key(username, roles=['user'])
+            
+            return jsonify({
+                'status': 'success',
+                'token': token,
+                'api_key': api_key,
+                'user': username,
+                'roles': ['user'],
+                'expires_in': auth.JWT_EXPIRATION_HOURS * 3600
+            }), 200
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Invalid credentials'
+            }), 401
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/auth/validate', methods=['GET', 'POST'])
+@auth.require_auth(jwt_required=True, api_key_required=False)
+def validate_token():
+    """Validate current authentication token"""
+    return jsonify({
+        'status': 'valid',
+        'user': g.current_user,
+        'roles': g.user_roles,
+        'authenticated': True
+    }), 200
+
+@app.route('/auth/api-keys', methods=['GET'])
+@auth.require_auth(jwt_required=True, roles=['admin'])
+def list_api_keys():
+    """List all API keys (admin only)"""
+    keys = []
+    for api_key, data in auth.API_KEYS.items():
+        keys.append({
+            'user': data['user'],
+            'roles': data['roles'],
+            'created_at': data['created_at'],
+            'key_preview': api_key[:8] + '...'  # Don't expose full key
+        })
+    
+    return jsonify({
+        'status': 'success',
+        'api_keys': keys,
+        'total': len(keys)
+    }), 200
+
+# Protected Endpoint Examples
+@app.route('/protected', methods=['GET'])
+@auth.require_auth(jwt_required=True)
+@auth.rate_limit(max_requests=30, window_seconds=60)
+def protected_endpoint():
+    """Example protected endpoint requiring JWT authentication"""
+    return jsonify({
+        'message': 'This is a protected endpoint',
+        'user': g.current_user,
+        'roles': g.user_roles,
+        'timestamp': datetime.utcnow().isoformat()
+    }), 200
+
+@app.route('/admin', methods=['GET'])
+@auth.require_auth(jwt_required=True, roles=['admin'])
+def admin_endpoint():
+    """Example admin-only endpoint"""
+    return jsonify({
+        'message': 'This is an admin-only endpoint',
+        'user': g.current_user,
+        'roles': g.user_roles,
+        'timestamp': datetime.utcnow().isoformat()
+    }), 200
+
+@app.route('/api-key-test', methods=['GET'])
+@auth.require_auth(api_key_required=True)
+def api_key_test():
+    """Example endpoint using API key authentication"""
+    return jsonify({
+        'message': 'This endpoint uses API key authentication',
+        'user': g.current_user,
+        'roles': g.user_roles,
+        'authenticated': True
+    }), 200
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 8080))
