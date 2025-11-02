@@ -105,6 +105,7 @@ make test             # Run tests
 - **[docs/QUICKREF.md](./docs/QUICKREF.md)** - Quick reference (common commands)
 - **[docs/TESTING.md](./docs/TESTING.md)** - Testing guide (how to test features)
 - **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Troubleshooting guide
+- **[docs/IMPROVEMENT_REPORT.md](./docs/IMPROVEMENT_REPORT.md)** - Code quality improvement tracking
 
 ### Feature-Specific Guides
 
