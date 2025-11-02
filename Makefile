@@ -37,7 +37,7 @@ test-k8s:
 	@echo "Testing Kubernetes features..."
 	./tests/test_k8s_features.sh
 
-test-all: test test-redis
+test-all: test test-asgi test-redis
 	@echo "All local tests completed"
 
 docker-build:
