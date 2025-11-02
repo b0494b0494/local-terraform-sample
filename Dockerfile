@@ -20,10 +20,11 @@ COPY app/ ./app/
 COPY routes/ ./routes/
 COPY auth_pkg/ ./auth_pkg/
 
-# ????????????????root?????????
+# Change ownership to non-root user
 RUN chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8080
 
 CMD ["python", "app.py"]
+hon", "app.py"]
