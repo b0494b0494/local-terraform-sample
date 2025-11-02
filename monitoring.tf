@@ -247,6 +247,16 @@ resource "kubernetes_deployment" "grafana" {
             mount_path = "/etc/grafana/provisioning/datasources"
           }
 
+          # Loki datasource mount
+          dynamic "volume_mount" {
+            for_each = var.enable_loki ? [1] : []
+            content {
+              name       = "grafana-loki-datasource"
+              mount_path = "/etc/grafana/provisioning/datasources/loki.yaml"
+              sub_path   = "loki.yaml"
+            }
+          }
+
           resources {
             requests = {
               cpu    = "100m"
@@ -264,12 +274,23 @@ resource "kubernetes_deployment" "grafana" {
           empty_dir {}
         }
 
-        volume {
-          name = "grafana-datasource"
-          config_map {
-            name = kubernetes_config_map.grafana_datasource[0].metadata[0].name
+          volume {
+            name = "grafana-datasource"
+            config_map {
+              name = kubernetes_config_map.grafana_datasource[0].metadata[0].name
+            }
           }
-        }
+
+          # Loki datasource if enabled
+          dynamic "volume" {
+            for_each = var.enable_loki ? [1] : []
+            content {
+              name = "grafana-loki-datasource"
+              config_map {
+                name = kubernetes_config_map.grafana_loki_datasource[0].metadata[0].name
+              }
+            }
+          }
       }
     }
   }
@@ -296,6 +317,31 @@ resource "kubernetes_config_map" "grafana_datasource" {
           access: proxy
           url: http://prometheus:9090
           isDefault: true
+          editable: true
+      EOF
+  }
+}
+
+# Grafana Loki DataSource ConfigMap
+resource "kubernetes_config_map" "grafana_loki_datasource" {
+  count = var.enable_grafana && var.enable_loki ? 1 : 0
+
+  metadata {
+    name      = "grafana-loki-datasource"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+    labels = {
+      app = "grafana"
+    }
+  }
+
+  data = {
+    "loki.yaml" = <<-EOF
+      apiVersion: 1
+      datasources:
+        - name: Loki
+          type: loki
+          access: proxy
+          url: http://loki:3100
           editable: true
       EOF
   }

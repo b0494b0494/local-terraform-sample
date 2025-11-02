@@ -123,3 +123,9 @@ variable "enable_grafana" {
   type        = bool
   default     = false
 }
+
+variable "enable_loki" {
+  description = "Enable Loki log aggregation"
+  type        = bool
+  default     = false
+}

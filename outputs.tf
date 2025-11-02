@@ -87,3 +87,13 @@ output "grafana_service" {
   description = "Grafana service name (if enabled)"
   value       = var.enable_grafana ? kubernetes_service.grafana[0].metadata[0].name : null
 }
+
+output "loki_enabled" {
+  description = "Whether Loki is enabled"
+  value       = var.enable_loki
+}
+
+output "loki_service" {
+  description = "Loki service name (if enabled)"
+  value       = var.enable_loki ? kubernetes_service.loki[0].metadata[0].name : null
+}
