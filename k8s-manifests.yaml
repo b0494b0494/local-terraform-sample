@@ -4,6 +4,18 @@ kind: Namespace
 metadata:
   name: sample-app
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: sample-app
+  labels:
+    app: sample-app
+data:
+  APP_NAME: "sample-app"
+  APP_VERSION: "1.0.0"
+  LOG_LEVEL: "INFO"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,6 +41,37 @@ spec:
         env:
         - name: ENVIRONMENT
           value: "kubernetes"
+        - name: APP_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_NAME
+        - name: APP_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_VERSION
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: LOG_LEVEL
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
         resources:
           requests:
             cpu: 100m

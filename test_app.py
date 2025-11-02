@@ -13,10 +13,24 @@ def test_health_endpoint(base_url="http://localhost:8080"):
         assert response.status_code == 200
         data = response.json()
         assert data['status'] == 'healthy'
+        assert 'service' in data
         print("? Health check passed")
         return True
     except Exception as e:
         print(f"? Health check failed: {e}")
+        return False
+
+def test_ready_endpoint(base_url="http://localhost:8080"):
+    """Readiness???????????"""
+    try:
+        response = requests.get(f"{base_url}/ready", timeout=5)
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'ready'
+        print("? Readiness check passed")
+        return True
+    except Exception as e:
+        print(f"? Readiness check failed: {e}")
         return False
 
 def test_root_endpoint(base_url="http://localhost:8080"):
@@ -27,10 +41,26 @@ def test_root_endpoint(base_url="http://localhost:8080"):
         data = response.json()
         assert 'message' in data
         assert 'status' in data
+        assert 'app_name' in data
+        assert 'version' in data
         print("? Root endpoint passed")
         return True
     except Exception as e:
         print(f"? Root endpoint failed: {e}")
+        return False
+
+def test_info_endpoint(base_url="http://localhost:8080"):
+    """Info???????????"""
+    try:
+        response = requests.get(f"{base_url}/info", timeout=5)
+        assert response.status_code == 200
+        data = response.json()
+        assert 'app_name' in data
+        assert 'version' in data
+        print("? Info endpoint passed")
+        return True
+    except Exception as e:
+        print(f"? Info endpoint failed: {e}")
         return False
 
 if __name__ == "__main__":
@@ -42,7 +72,9 @@ if __name__ == "__main__":
     
     results = []
     results.append(test_health_endpoint())
+    results.append(test_ready_endpoint())
     results.append(test_root_endpoint())
+    results.append(test_info_endpoint())
     
     print("-" * 40)
     if all(results):

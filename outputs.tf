@@ -12,3 +12,8 @@ output "service_name" {
   description = "?????Service?"
   value       = kubernetes_service.sample_app.metadata[0].name
 }
+
+output "configmap_name" {
+  description = "?????ConfigMap?"
+  value       = kubernetes_config_map.app_config.metadata[0].name
+}

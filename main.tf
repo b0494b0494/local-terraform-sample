@@ -26,6 +26,23 @@ resource "kubernetes_namespace" "sample_app" {
   }
 }
 
+# ConfigMap????????????
+resource "kubernetes_config_map" "app_config" {
+  metadata {
+    name      = "app-config"
+    namespace = kubernetes_namespace.sample_app.metadata[0].name
+    labels = {
+      app = "sample-app"
+    }
+  }
+
+  data = {
+    APP_NAME    = "sample-app"
+    APP_VERSION = "1.0.0"
+    LOG_LEVEL   = "INFO"
+  }
+}
+
 # Deployment
 resource "kubernetes_deployment" "sample_app" {
   metadata {
@@ -61,9 +78,64 @@ resource "kubernetes_deployment" "sample_app" {
             container_port = 8080
           }
 
+          # ConfigMap???????????
           env {
-            name  = "ENVIRONMENT"
+            name = "ENVIRONMENT"
             value = "kubernetes"
+          }
+
+          env {
+            name = "APP_NAME"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.app_config.metadata[0].name
+                key  = "APP_NAME"
+              }
+            }
+          }
+
+          env {
+            name = "APP_VERSION"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.app_config.metadata[0].name
+                key  = "APP_VERSION"
+              }
+            }
+          }
+
+          env {
+            name = "LOG_LEVEL"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.app_config.metadata[0].name
+                key  = "LOG_LEVEL"
+              }
+            }
+          }
+
+          # Liveness Probe???????????????
+          liveness_probe {
+            http_get {
+              path = "/health"
+              port = 8080
+            }
+            initial_delay_seconds = 30
+            period_seconds        = 10
+            timeout_seconds        = 5
+            failure_threshold      = 3
+          }
+
+          # Readiness Probe?????????????????????????
+          readiness_probe {
+            http_get {
+              path = "/ready"
+              port = 8080
+            }
+            initial_delay_seconds = 10
+            period_seconds        = 5
+            timeout_seconds       = 3
+            failure_threshold     = 3
           }
 
           resources {
