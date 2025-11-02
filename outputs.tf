@@ -107,3 +107,23 @@ output "redis_enabled" {
   description = "Whether Redis cache is enabled"
   value       = var.enable_redis
 }
+
+output "blue_green_enabled" {
+  description = "Whether blue-green deployment is enabled"
+  value       = var.enable_blue_green
+}
+
+output "active_environment" {
+  description = "Currently active environment (blue or green)"
+  value       = var.enable_blue_green ? var.active_environment : null
+}
+
+output "blue_deployment_name" {
+  description = "Blue deployment name (if enabled)"
+  value       = var.enable_blue_green ? module.blue_deployment[0].deployment_name : null
+}
+
+output "green_deployment_name" {
+  description = "Green deployment name (if enabled)"
+  value       = var.enable_blue_green ? module.green_deployment[0].deployment_name : null
+}
