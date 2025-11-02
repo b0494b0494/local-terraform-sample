@@ -35,18 +35,45 @@ db_pool = database.initialize_db_pool()
 
 
 @app.get("/")
-async def root():
+async def root(request: Request):
     """Root endpoint - FastAPI version"""
-    logger.info("GET / - FastAPI endpoint")
-    return {
+    logger.info(f"GET / - FastAPI endpoint from {request.client.host if request.client else 'unknown'}")
+    
+    # Try to use cache decorator pattern
+    cache_key = f"root:{request.url}"
+    cached = False
+    
+    if cache_client:
+        try:
+            cached_data = cache_client.get(cache_key)
+            if cached_data:
+                import json
+                data = json.loads(cached_data)
+                data["cached"] = True
+                return data
+        except Exception as e:
+            logger.debug(f"Cache read error: {e}")
+    
+    data = {
         "message": "Hello from FastAPI App!",
         "status": "running",
         "app_name": APP_NAME,
         "version": APP_VERSION,
         "environment": ENVIRONMENT,
         "timestamp": datetime.utcnow().isoformat(),
-        "framework": "FastAPI/ASGI"
+        "framework": "FastAPI/ASGI",
+        "cached": cached
     }
+    
+    # Cache the response
+    if cache_client:
+        try:
+            import json
+            cache_client.setex(cache_key, 60, json.dumps(data))
+        except Exception as e:
+            logger.debug(f"Cache write error: {e}")
+    
+    return data
 
 
 @app.get("/health")
@@ -159,6 +186,50 @@ async def db_status():
         logger.error(f"Database connection error: {e}")
         return JSONResponse(
             status_code=503,
+            content={
+                "status": "error",
+                "message": str(e),
+                "framework": "FastAPI/ASGI"
+            }
+        )
+
+
+@app.get("/cache/stats")
+async def cache_stats():
+    """Cache statistics endpoint - FastAPI version"""
+    try:
+        stats = cache.get_cache_stats()
+        return {
+            "status": "success",
+            "stats": stats,
+            "framework": "FastAPI/ASGI"
+        }
+    except Exception as e:
+        logger.error(f"Cache stats error: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "message": str(e),
+                "framework": "FastAPI/ASGI"
+            }
+        )
+
+
+@app.post("/cache/clear")
+async def cache_clear():
+    """Clear cache endpoint - FastAPI version"""
+    try:
+        cleared = cache.clear_cache()
+        return {
+            "status": "success",
+            "message": f"Cache cleared. Keys removed: {cleared}",
+            "framework": "FastAPI/ASGI"
+        }
+    except Exception as e:
+        logger.error(f"Cache clear error: {e}")
+        return JSONResponse(
+            status_code=500,
             content={
                 "status": "error",
                 "message": str(e),

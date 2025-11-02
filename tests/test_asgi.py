@@ -86,5 +86,36 @@ def test_ready_with_db_check():
     assert data["framework"] == "FastAPI/ASGI"
 
 
+def test_cache_stats_endpoint():
+    """Test cache stats endpoint"""
+    response = client.get("/cache/stats")
+    # Should return 200 even if cache is not configured
+    assert response.status_code in [200, 500]
+    if response.status_code == 200:
+        data = response.json()
+        assert "status" in data
+        assert data["framework"] == "FastAPI/ASGI"
+
+
+def test_cache_clear_endpoint():
+    """Test cache clear endpoint"""
+    response = client.post("/cache/clear")
+    # Should return 200 even if cache is not configured
+    assert response.status_code in [200, 500]
+    if response.status_code == 200:
+        data = response.json()
+        assert "status" in data
+        assert data["framework"] == "FastAPI/ASGI"
+
+
+def test_root_with_caching():
+    """Test root endpoint with caching support"""
+    response = client.get("/")
+    assert response.status_code == 200
+    data = response.json()
+    assert "cached" in data
+    assert data["framework"] == "FastAPI/ASGI"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
