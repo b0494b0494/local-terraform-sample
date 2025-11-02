@@ -32,7 +32,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: llm-app
     container_name: llm-app
     ports:
       - "8081:8080"
