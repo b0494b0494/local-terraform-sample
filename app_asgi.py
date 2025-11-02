@@ -8,9 +8,10 @@ from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime
 import logging
+import time
 from typing import Optional
 
-from app import config, database, cache
+from app import config, database, cache, metrics
 from auth_pkg import users, jwt, api_keys, decorators
 
 # Logging Configuration
@@ -81,6 +82,7 @@ async def root(request: Request):
 @app.get("/health")
 async def health():
     """Health check endpoint - FastAPI version"""
+    metrics.record_request_metric("GET", "/health", 200)
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
@@ -384,6 +386,57 @@ async def api_key_test(x_api_key: Optional[str] = Header(None)):
         }
     else:
         raise HTTPException(status_code=401, detail="Invalid API key")
+
+
+@app.get("/metrics")
+async def get_metrics():
+    """Prometheus metrics endpoint - FastAPI version"""
+    try:
+        metrics_text = metrics.get_prometheus_metrics()
+        from fastapi.responses import Response
+        return Response(content=metrics_text, media_type="text/plain")
+    except Exception as e:
+        logger.error(f"Metrics error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+@app.get("/traces")
+async def get_traces():
+    """Distributed tracing data endpoint - FastAPI version"""
+    try:
+        traces_data = metrics.get_traces()
+        return {
+            "status": "success",
+            "traces": traces_data,
+            "framework": "FastAPI/ASGI"
+        }
+    except Exception as e:
+        logger.error(f"Traces error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+@app.get("/apm/stats")
+async def get_apm_stats():
+    """APM performance statistics endpoint - FastAPI version"""
+    try:
+        apm_stats = metrics.get_apm_stats()
+        return {
+            "status": "success",
+            "stats": apm_stats,
+            "framework": "FastAPI/ASGI"
+        }
+    except Exception as e:
+        logger.error(f"APM stats error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 
 # Global exception handler

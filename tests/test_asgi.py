@@ -143,5 +143,32 @@ def test_api_key_test_no_key():
     assert response.status_code == 401
 
 
+def test_metrics_endpoint():
+    """Test metrics endpoint"""
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    # Should return Prometheus format text
+    assert "text/plain" in response.headers.get("content-type", "")
+
+
+def test_traces_endpoint():
+    """Test traces endpoint"""
+    response = client.get("/traces")
+    assert response.status_code == 200
+    data = response.json()
+    assert "status" in data
+    assert data["framework"] == "FastAPI/ASGI"
+
+
+def test_apm_stats_endpoint():
+    """Test APM stats endpoint"""
+    response = client.get("/apm/stats")
+    assert response.status_code == 200
+    data = response.json()
+    assert "status" in data
+    assert "stats" in data
+    assert data["framework"] == "FastAPI/ASGI"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
