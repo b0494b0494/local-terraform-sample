@@ -76,12 +76,32 @@ resource "kubernetes_deployment" "sample_app" {
       }
 
       spec {
+        # Persistent Volume Claim for storage (if enabled)
+        dynamic "volume" {
+          for_each = var.enable_persistent_storage ? [1] : []
+          content {
+            name = "app-storage"
+            persistent_volume_claim {
+              claim_name = kubernetes_persistent_volume_claim.app_storage[0].metadata[0].name
+            }
+          }
+        }
+
         container {
           image = "sample-app:latest"
           name  = "sample-app"
 
           port {
             container_port = 8080
+          }
+
+          # Volume mount (if persistent storage is enabled)
+          dynamic "volume_mount" {
+            for_each = var.enable_persistent_storage ? [1] : []
+            content {
+              name       = "app-storage"
+              mount_path = "/app/data"
+            }
           }
 
           # ConfigMapから環境変数を読み込む

@@ -27,3 +27,8 @@ enable_hpa       = true
 hpa_min_replicas = 2
 hpa_max_replicas = 10
 hpa_target_cpu   = 70
+
+# Persistent Storage (optional)
+enable_persistent_storage = false
+storage_size              = "1Gi"
+storage_host_path         = "/tmp/k8s-storage"

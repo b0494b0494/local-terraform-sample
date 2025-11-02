@@ -42,3 +42,13 @@ output "hpa_name" {
   description = "HPA name (if enabled)"
   value       = var.enable_hpa ? kubernetes_horizontal_pod_autoscaler.sample_app[0].metadata[0].name : null
 }
+
+output "storage_enabled" {
+  description = "Whether persistent storage is enabled"
+  value       = var.enable_persistent_storage
+}
+
+output "pvc_name" {
+  description = "PVC name (if storage enabled)"
+  value       = var.enable_persistent_storage ? kubernetes_persistent_volume_claim.app_storage[0].metadata[0].name : null
+}

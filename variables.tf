@@ -91,3 +91,22 @@ variable "hpa_target_cpu" {
   type        = number
   default     = 70
 }
+
+# Storage Variables
+variable "enable_persistent_storage" {
+  description = "Enable persistent storage (PV/PVC)"
+  type        = bool
+  default     = false
+}
+
+variable "storage_size" {
+  description = "Storage size (e.g., 1Gi, 10Gi)"
+  type        = string
+  default     = "1Gi"
+}
+
+variable "storage_host_path" {
+  description = "Host path for local storage (Minikube/kind)"
+  type        = string
+  default     = "/tmp/k8s-storage"
+}
