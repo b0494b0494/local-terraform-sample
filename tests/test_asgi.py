@@ -66,5 +66,25 @@ def test_nonexistent_endpoint():
     assert response.status_code == 404
 
 
+def test_db_status_endpoint():
+    """Test database status endpoint"""
+    response = client.get("/db/status")
+    # Should return either 200 (connected) or status indicating not configured
+    assert response.status_code in [200, 503]
+    data = response.json()
+    assert "status" in data
+    assert data["framework"] == "FastAPI/ASGI"
+
+
+def test_ready_with_db_check():
+    """Test ready endpoint includes database check"""
+    response = client.get("/ready")
+    assert response.status_code in [200, 503]
+    data = response.json()
+    assert "status" in data
+    assert "database_connected" in data
+    assert data["framework"] == "FastAPI/ASGI"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
