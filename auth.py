@@ -3,6 +3,7 @@
 Authentication and Authorization module
 Provides JWT token and API key authentication
 """
+from typing import Optional, Dict, List, Any, Callable, Union
 import os
 import time
 import hmac
@@ -34,11 +35,11 @@ API_KEYS = {}
 # Note: These hashes are generated at module load time to ensure consistency
 DEMO_USERS = {}
 
-def get_user(username: str):
+def get_user(username: str) -> Optional[Dict[str, Any]]:
     """Get user data by username (in production, query database)"""
     return DEMO_USERS.get(username)
 
-def authenticate_user(username: str, password: str):
+def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
     """Authenticate a user with username and password"""
     user = get_user(username)
     if not user:
@@ -64,16 +65,16 @@ def verify_password(password: str, hashed: str) -> bool:
         logger.error(f"Password verification error: {e}")
         return False
 
-def generate_api_key():
+def generate_api_key() -> str:
     """Generate a new API key"""
     return secrets.token_urlsafe(32)
 
-def set_db_pool(db_pool):
+def set_db_pool(db_pool: Any) -> None:
     """Set database connection pool (called from app.py)"""
     global _db_pool
     _db_pool = db_pool
 
-def store_api_key_in_db(api_key, user, roles=None):
+def store_api_key_in_db(api_key: str, user: str, roles: Optional[List[str]] = None) -> bool:
     """Store API key in database"""
     if not _db_pool:
         return False
@@ -100,7 +101,7 @@ def store_api_key_in_db(api_key, user, roles=None):
             _db_pool.putconn(conn)
         return False
 
-def get_api_key_from_db(api_key):
+def get_api_key_from_db(api_key: str) -> Optional[Dict[str, Any]]:
     """Get API key data from database"""
     if not _db_pool:
         return None
@@ -181,7 +182,7 @@ def register_api_key(user, roles=None):
     logger.info(f"API key registered for user: {user}")
     return api_key
 
-def validate_api_key(api_key):
+def validate_api_key(api_key: str) -> Optional[Dict[str, Any]]:
     """Validate an API key"""
     if not api_key:
         return None
@@ -249,7 +250,7 @@ def create_jwt_token(user, roles=None):
     token = f"{encoded_header}.{encoded_payload}.{encoded_signature}"
     return token
 
-def verify_jwt_token(token):
+def verify_jwt_token(token: str) -> Optional[Dict[str, Any]]:
     """Verify a JWT token (simplified implementation)"""
     if not token:
         return None
