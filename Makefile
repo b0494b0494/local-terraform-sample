@@ -29,6 +29,17 @@ run:
 test:
 	python test_app.py
 
+test-redis:
+	@echo "Testing Redis cache functionality..."
+	python test_redis_cache.py
+
+test-k8s:
+	@echo "Testing Kubernetes features..."
+	./test_k8s_features.sh
+
+test-all: test test-redis
+	@echo "All local tests completed"
+
 docker-build:
 	docker build -t sample-app:latest .
 
