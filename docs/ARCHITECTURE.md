@@ -249,6 +249,7 @@ graph TD
     AppPkg --> Cache["cache.py<br/>Redis cache"]
     AppPkg --> Metrics["metrics.py<br/>Metrics & tracing"]
     App --> LLMPy["llm_app.py<br/>LLM app with observability"]
+    App --> MigPy["migration.py<br/>DB migration"]
     RoutesDir --> HealthPy["health.py<br/>Health endpoints"]
     RoutesDir --> CachePy["cache.py<br/>Cache endpoints"]
     RoutesDir --> MetricsPy["metrics.py<br/>Observability"]
