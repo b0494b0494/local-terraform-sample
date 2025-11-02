@@ -1,10 +1,13 @@
 name: CI - Test and Build
 
+# Disabled for practice environment - uncomment to enable
+# on:
+#   push:
+#     branches: [ main, develop ]
+#   pull_request:
+#     branches: [ main, develop ]
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+  workflow_dispatch:  # Manual trigger only for practice
 
 jobs:
   test:

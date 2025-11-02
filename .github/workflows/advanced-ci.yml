@@ -1,11 +1,13 @@
 name: Advanced CI Pipeline
 
+# Disabled for practice environment - uncomment to enable
+# on:
+#   push:
+#     branches: [ main, develop ]
+#   pull_request:
+#     branches: [ main, develop ]
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger only for practice
 
 env:
   REGISTRY: ghcr.io
