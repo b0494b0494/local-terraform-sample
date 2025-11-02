@@ -191,17 +191,17 @@ jobs:
           terraform_version: "1.5.0"
 
       - name: Terraform Format Check
-        run: terraform fmt -check
+        run: cd terraform && terraform fmt -check
 
       - name: Terraform Init
-        run: terraform init
+        run: cd terraform && terraform init
 
       - name: Terraform Validate
-        run: terraform validate
+        run: cd terraform && terraform validate
 
       - name: Terraform Plan
         run: |
-          terraform plan -no-color -out=tfplan || echo "Terraform plan completed with warnings"
+          cd terraform && terraform plan -no-color -out=tfplan || echo "Terraform plan completed with warnings"
         continue-on-error: true
 
   # Performance Tests

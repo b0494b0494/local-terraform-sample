@@ -31,11 +31,11 @@ test:
 
 test-redis:
 	@echo "Testing Redis cache functionality..."
-	python test_redis_cache.py
+	python tests/test_redis_cache.py
 
 test-k8s:
 	@echo "Testing Kubernetes features..."
-	./test_k8s_features.sh
+	./tests/test_k8s_features.sh
 
 test-all: test test-redis
 	@echo "All local tests completed"
@@ -56,23 +56,23 @@ docker-compose-logs:
 	docker-compose logs -f
 
 terraform-init:
-	terraform init
+	cd terraform && terraform init
 
 terraform-plan:
-	terraform plan
+	cd terraform && terraform plan
 
 terraform-apply:
-	terraform apply
+	cd terraform && terraform apply
 
 terraform-destroy:
-	terraform destroy
+	cd terraform && terraform destroy
 
 k8s-deploy-manifest:
-	kubectl apply -f k8s-manifests.yaml
+	kubectl apply -f terraform/k8s-manifests.yaml
 
 k8s-delete-manifest:
-	kubectl delete -f k8s-manifests.yaml
+	kubectl delete -f terraform/k8s-manifests.yaml
 
 clean:
-	terraform destroy -auto-approve || true
+	cd terraform && terraform destroy -auto-approve || true
 	kubectl delete namespace sample-app || true

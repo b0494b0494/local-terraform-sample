@@ -38,14 +38,14 @@ jobs:
         # echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
 
     - name: Terraform Init
-      run: terraform init
+      run: cd terraform && terraform init
 
     - name: Terraform Plan
-      run: terraform plan -out=tfplan
+      run: cd terraform && terraform plan -out=tfplan
       continue-on-error: true
 
     - name: Terraform Apply
-      run: terraform apply -auto-approve tfplan
+      run: cd terraform && terraform apply -auto-approve tfplan
       continue-on-error: true
       # Note: Will fail if Kubernetes cluster is not accessible
       # This is safe - workflow won't break, just skip deployment

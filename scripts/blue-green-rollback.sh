@@ -10,7 +10,9 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_DIR"
 
 # Get current active environment
+cd terraform
 CURRENT_ENV=$(terraform output -raw active_environment 2>/dev/null || echo "blue")
+cd ..
 ROLLBACK_ENV=""
 
 if [ "$CURRENT_ENV" = "blue" ]; then
@@ -32,7 +34,9 @@ if [ "$confirm" != "yes" ]; then
 fi
 
 # Check if blue-green is enabled
+cd terraform
 if ! terraform output -raw blue_green_enabled 2>/dev/null | grep -q "true"; then
+    cd ..
     echo "Error: Blue-green deployment is not enabled."
     exit 1
 fi
@@ -40,6 +44,7 @@ fi
 # Apply terraform with rollback environment
 echo "Rolling back to $ROLLBACK_ENV environment..."
 terraform apply -var="active_environment=$ROLLBACK_ENV" -auto-approve
+cd ..
 
 echo ""
 echo "? Rollback complete. Traffic now routed to $ROLLBACK_ENV environment"

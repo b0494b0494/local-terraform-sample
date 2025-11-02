@@ -27,9 +27,11 @@ docker-compose down
 echo ""
 echo "3. Validating Terraform..."
 if command -v terraform &> /dev/null; then
+    cd terraform
     terraform init -backend=false
     terraform validate
     terraform fmt -check
+    cd ..
 else
     echo "??  Terraform not installed, skipping"
 fi
