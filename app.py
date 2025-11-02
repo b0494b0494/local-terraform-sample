@@ -25,10 +25,10 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Configuration from ConfigMap (set as environment variables)
-APP_NAME = os.getenv('APP_NAME', 'sample-app')
-APP_VERSION = os.getenv('APP_VERSION', '1.0.0')
-ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')
+# Configuration from ConfigMap (set as environment variables) - using config module
+APP_NAME = config.Config.APP_NAME
+APP_VERSION = config.Config.APP_VERSION
+ENVIRONMENT = config.Config.ENVIRONMENT
 
 # Metrics module imported - see metrics.py
 
