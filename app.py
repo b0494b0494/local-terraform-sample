@@ -14,8 +14,8 @@ import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 import auth
+import metrics
 import time
-import uuid
 from collections import defaultdict
 
 # Logging Configuration
@@ -32,33 +32,7 @@ APP_NAME = os.getenv('APP_NAME', 'sample-app')
 APP_VERSION = os.getenv('APP_VERSION', '1.0.0')
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')
 
-# Prometheus metrics storage
-_metrics = {
-    'http_requests_total': defaultdict(lambda: defaultdict(int)),  # path -> status -> count
-    'http_request_duration_seconds': [],  # List of durations
-    'app_database_connection_errors_total': 0,
-    'app_redis_connection_errors_total': 0,
-}
-
-# Distributed tracing storage (simplified OpenTelemetry-style)
-_traces = []  # List of trace spans
-_MAX_TRACES = 100  # Keep last 100 traces
-
-# APM (Application Performance Monitoring) hooks
-_apm_data = {
-    'operation_stats': defaultdict(lambda: {
-        'count': 0,
-        'total_duration_ms': 0.0,
-        'min_duration_ms': float('inf'),
-        'max_duration_ms': 0.0,
-        'errors': 0,
-        'last_executed': None
-    }),
-    'slow_operations': [],  # Operations taking > 1 second
-    'error_operations': []  # Operations that failed
-}
-_MAX_SLOW_OPS = 50
-_MAX_ERROR_OPS = 50
+# Metrics module imported - see metrics.py
 
 # Redis Connection Configuration
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
@@ -124,13 +98,13 @@ def get_db_connection():
     try:
         conn = db_pool.getconn()
         duration_ms = (time.time() - start_time) * 1000
-        _record_apm_operation(operation, duration_ms, success=True)
+        metrics.record_apm_operation(operation, duration_ms, success=True)
         return conn
     except Exception as e:
         duration_ms = (time.time() - start_time) * 1000
         logger.error(f"Failed to get database connection: {e}")
-        _metrics['app_database_connection_errors_total'] += 1
-        _record_apm_operation(operation, duration_ms, success=False, error=str(e))
+        metrics.increment_database_errors()
+        metrics.record_apm_operation(operation, duration_ms, success=False, error=str(e))
         return None
 
 def return_db_connection(conn):
@@ -146,7 +120,7 @@ def return_db_connection(conn):
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
             logger.error(f"Failed to return database connection: {e}")
-            _record_apm_operation(operation, duration_ms, success=False, error=str(e))
+            metrics.record_apm_operation(operation, duration_ms, success=False, error=str(e))
 
 class DatabaseConnection:
     """Context manager for database connections"""
@@ -179,7 +153,7 @@ def cache_response(ttl=REDIS_TTL):
                 start_time = time.time()
                 cached = redis_client.get(cache_key)
                 duration_ms = (time.time() - start_time) * 1000
-                _record_apm_operation("cache.get", duration_ms, success=True)
+                metrics.record_apm_operation("cache.get", duration_ms, success=True)
                 
                 if cached:
                     logger.debug(f"Cache HIT: {cache_key}")
@@ -206,13 +180,12 @@ def cache_response(ttl=REDIS_TTL):
                             json.dumps(json_data)
                         )
                         duration_ms = (time.time() - start_time) * 1000
-                        _record_apm_operation("cache.set", duration_ms, success=True)
+                        metrics.record_apm_operation("cache.set", duration_ms, success=True)
                         logger.debug(f"Cached response for {cache_key} (TTL: {ttl}s)")
             except Exception as e:
-                start_time = time.time()
                 duration_ms = (time.time() - start_time) * 1000 if 'start_time' in locals() else 0
                 logger.warning(f"Cache write error: {e}")
-                _record_apm_operation("cache.set", duration_ms, success=False, error=str(e))
+                metrics.record_apm_operation("cache.set", duration_ms, success=False, error=str(e))
             
             return response
         return decorated_function
@@ -374,59 +347,35 @@ def before_request_metrics():
     """Collect metrics and tracing at request start"""
     request.start_time = time.time()
     # Generate trace and span IDs (OpenTelemetry-style)
-    request.trace_id = uuid.uuid4().hex[:16]  # 16-char trace ID
-    request.span_id = uuid.uuid4().hex[:8]    # 8-char span ID
+    trace_ids = metrics.generate_trace_ids()
+    request.trace_id = trace_ids['trace_id']
+    request.span_id = trace_ids['span_id']
 
 @app.after_request
 def after_request_metrics(response):
     """Collect metrics and tracing at request end"""
     duration = time.time() - request.start_time
     
-    # HTTP requests total (by path and status)
+    # Record HTTP request metrics
     path = request.path
     status = response.status_code
-    _metrics['http_requests_total'][path][status] += 1
+    user = getattr(g, 'current_user', None)
     
-    # Request duration
-    _metrics['http_request_duration_seconds'].append({
-        'path': path,
-        'method': request.method,
-        'duration': duration,
-        'status': status,
-        'timestamp': datetime.utcnow().isoformat()
-    })
+    metrics.record_http_request(path, request.method, status, duration, user)
     
-    # Keep only last 100 entries
-    if len(_metrics['http_request_duration_seconds']) > 100:
-        _metrics['http_request_duration_seconds'] = _metrics['http_request_duration_seconds'][-100:]
-    
-    # Distributed tracing: Create span
-    span = {
-        'trace_id': getattr(request, 'trace_id', 'unknown'),
-        'span_id': getattr(request, 'span_id', 'unknown'),
-        'parent_span_id': None,  # Root span
-        'operation_name': f"{request.method} {path}",
-        'service_name': APP_NAME,
-        'start_time': datetime.utcnow().isoformat(),
-        'duration_ms': duration * 1000,
-        'status_code': status,
-        'attributes': {
-            'http.method': request.method,
-            'http.path': path,
-            'http.status_code': status,
-            'http.user_agent': request.headers.get('User-Agent', 'unknown'),
-        }
-    }
-    
-    # Add authentication info if available
-    if hasattr(g, 'current_user') and g.current_user:
-        span['attributes']['user'] = g.current_user
-    
-    _traces.append(span)
-    
-    # Keep only last MAX_TRACES
-    if len(_traces) > _MAX_TRACES:
-        _traces[:] = _traces[-_MAX_TRACES:]
+    # Create trace span
+    metrics.create_trace_span(
+        trace_id=getattr(request, 'trace_id', 'unknown'),
+        span_id=getattr(request, 'span_id', 'unknown'),
+        operation_name=f"{request.method} {path}",
+        duration_ms=duration * 1000,
+        status_code=status,
+        method=request.method,
+        path=path,
+        user_agent=request.headers.get('User-Agent', 'unknown'),
+        service_name=APP_NAME,
+        user=user
+    )
     
     return response
 
@@ -505,66 +454,10 @@ def get_traces():
 @app.route('/apm/stats', methods=['GET'])
 def apm_stats():
     """APM performance statistics endpoint"""
-    # Calculate averages
-    stats_summary = {}
-    for operation, stats in _apm_data['operation_stats'].items():
-        avg_duration = stats['total_duration_ms'] / stats['count'] if stats['count'] > 0 else 0
-        error_rate = stats['errors'] / stats['count'] if stats['count'] > 0 else 0
-        
-        stats_summary[operation] = {
-            'count': stats['count'],
-            'avg_duration_ms': round(avg_duration, 2),
-            'min_duration_ms': round(stats['min_duration_ms'], 2) if stats['min_duration_ms'] != float('inf') else 0,
-            'max_duration_ms': round(stats['max_duration_ms'], 2),
-            'total_duration_ms': round(stats['total_duration_ms'], 2),
-            'errors': stats['errors'],
-            'error_rate': round(error_rate * 100, 2),  # Percentage
-            'last_executed': stats['last_executed']
-        }
-    
-    return jsonify({
-        'operation_stats': stats_summary,
-        'slow_operations': _apm_data['slow_operations'][-10:],  # Last 10 slow operations
-        'recent_errors': _apm_data['error_operations'][-10:],  # Last 10 errors
-        'summary': {
-            'total_operations': sum(s['count'] for s in _apm_data['operation_stats'].values()),
-            'total_errors': sum(s['errors'] for s in _apm_data['operation_stats'].values()),
-            'total_slow_operations': len(_apm_data['slow_operations'])
-        }
-    }), 200
+    stats = metrics.get_apm_stats()
+    return jsonify(stats), 200
 
-def _record_apm_operation(operation, duration_ms, success=True, error=None):
-    """Record APM metrics for an operation"""
-    stats = _apm_data['operation_stats'][operation]
-    
-    stats['count'] += 1
-    stats['total_duration_ms'] += duration_ms
-    stats['min_duration_ms'] = min(stats['min_duration_ms'], duration_ms)
-    stats['max_duration_ms'] = max(stats['max_duration_ms'], duration_ms)
-    stats['last_executed'] = datetime.utcnow().isoformat()
-    
-    if not success:
-        stats['errors'] += 1
-        error_record = {
-            'operation': operation,
-            'timestamp': datetime.utcnow().isoformat(),
-            'error': error or 'Unknown error',
-            'duration_ms': duration_ms
-        }
-        _apm_data['error_operations'].append(error_record)
-        if len(_apm_data['error_operations']) > _MAX_ERROR_OPS:
-            _apm_data['error_operations'] = _apm_data['error_operations'][-_MAX_ERROR_OPS:]
-    
-    # Track slow operations (> 1 second)
-    if duration_ms > 1000:
-        slow_record = {
-            'operation': operation,
-            'timestamp': datetime.utcnow().isoformat(),
-            'duration_ms': duration_ms
-        }
-        _apm_data['slow_operations'].append(slow_record)
-        if len(_apm_data['slow_operations']) > _MAX_SLOW_OPS:
-            _apm_data['slow_operations'] = _apm_data['slow_operations'][-_MAX_SLOW_OPS:]
+# _record_apm_operation is now metrics.record_apm_operation
 
 @app.route('/db/status')
 def db_status():
