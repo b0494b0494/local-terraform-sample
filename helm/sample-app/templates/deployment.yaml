@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  namespace: {{ .Values.app.name }}-namespace
+  labels:
+    app: {{ .Values.app.name }}
+    env: {{ .Values.app.environment }}
+    version: {{ .Values.app.version }}
+spec:
+  replicas: {{ .Values.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+        env: {{ .Values.app.environment }}
+        version: {{ .Values.app.version }}
+      {{- if .Values.features.enablePrometheus }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+      {{- end }}
+    spec:
+      {{- if .Values.features.enableRBAC }}
+      serviceAccountName: {{ .Values.app.name }}-sa
+      {{- end }}
+      containers:
+      - name: {{ .Values.app.name }}
+        image: "{{ .Values.deployment.image.repository }}:{{ .Values.deployment.image.tag }}"
+        imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: APP_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.app.name }}-config
+              key: APP_NAME
+        - name: APP_VERSION
+          value: {{ .Values.app.version | quote }}
+        - name: ENVIRONMENT
+          value: {{ .Values.app.environment | quote }}
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.app.name }}-config
+              key: LOG_LEVEL
+        {{- if .Values.features.enableRedis }}
+        - name: REDIS_HOST
+          value: "{{ .Values.app.name }}-redis"
+        - name: REDIS_PORT
+          value: "6379"
+        {{- end }}
+        {{- if .Values.features.enableDatabase }}
+        - name: DATABASE_HOST
+          value: "{{ .Values.app.name }}-database"
+        - name: DATABASE_PORT
+          value: "5432"
+        - name: DATABASE_NAME
+          value: {{ .Values.database.name | quote }}
+        - name: DATABASE_USER
+          value: {{ .Values.database.user | quote }}
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.app.name }}-database-secret
+              key: password
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: {{ .Values.resources.requests.cpu }}
+            memory: {{ .Values.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
