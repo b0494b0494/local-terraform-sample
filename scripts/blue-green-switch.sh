@@ -44,10 +44,6 @@ fi
 echo "Updating active environment to $NEW_ENV..."
 terraform apply -var="active_environment=$NEW_ENV" -auto-approve
 cd ..
-    echo "Error: Blue-green deployment is not enabled."
-    echo "Set enable_blue_green = true in terraform.tfvars"
-    exit 1
-fi
 
 # Apply terraform with new active environment
 echo "Updating active environment to $NEW_ENV..."
