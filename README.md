@@ -84,6 +84,7 @@ make test             # Run tests
 - **[docs/STORAGE_GUIDE.md](./docs/STORAGE_GUIDE.md)** - Persistent Volumes
 - **[docs/RBAC_GUIDE.md](./docs/RBAC_GUIDE.md)** - ServiceAccount & RBAC
 - **[docs/NETWORK_POLICIES_GUIDE.md](./docs/NETWORK_POLICIES_GUIDE.md)** - Network Policies (security)
+- **[docs/INIT_CONTAINERS_GUIDE.md](./docs/INIT_CONTAINERS_GUIDE.md)** - Init Containers (dependency management)
 - **[docs/PROMETHEUS_GUIDE.md](./docs/PROMETHEUS_GUIDE.md)** - Prometheus monitoring
 - **[docs/GRAFANA_GUIDE.md](./docs/GRAFANA_GUIDE.md)** - Grafana dashboards
 - **[docs/LOKI_GUIDE.md](./docs/LOKI_GUIDE.md)** - Loki log aggregation
