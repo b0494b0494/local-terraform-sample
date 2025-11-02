@@ -48,60 +48,8 @@ get_db_connection = db_utils.get_db_connection
 return_db_connection = db_utils.return_db_connection
 DatabaseConnection = db_utils.DatabaseConnection
 
-def cache_response(ttl=REDIS_TTL):
-    """Decorator to cache Flask route responses"""
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if redis_client is None:
-                # If Redis is not available, execute normally
-                return f(*args, **kwargs)
-            
-            # Generate cache key from path and parameters
-            cache_key = f"cache:{request.path}:{str(sorted(request.args.items()))}"
-            
-            # Try to get from cache
-            try:
-                start_time = time.time()
-                cached = redis_client.get(cache_key)
-                duration_ms = (time.time() - start_time) * 1000
-                metrics.record_apm_operation("cache.get", duration_ms, success=True)
-                
-                if cached:
-                    logger.debug(f"Cache HIT: {cache_key}")
-                    return jsonify(json.loads(cached)), 200
-            except Exception as e:
-                duration_ms = (time.time() - start_time) * 1000
-                logger.warning(f"Cache read error: {e}")
-                _record_apm_operation("cache.get", duration_ms, success=False, error=str(e))
-            
-            # Cache miss - execute normally
-            logger.debug(f"Cache MISS: {cache_key}")
-            response = f(*args, **kwargs)
-            
-            # Cache response (JSON responses only)
-            try:
-                if isinstance(response, tuple) and len(response) == 2:
-                    data, status = response
-                    if status == 200 and hasattr(data, 'get_json'):
-                        start_time = time.time()
-                        json_data = data.get_json()
-                        redis_client.setex(
-                            cache_key,
-                            ttl,
-                            json.dumps(json_data)
-                        )
-                        duration_ms = (time.time() - start_time) * 1000
-                        metrics.record_apm_operation("cache.set", duration_ms, success=True)
-                        logger.debug(f"Cached response for {cache_key} (TTL: {ttl}s)")
-            except Exception as e:
-                duration_ms = (time.time() - start_time) * 1000 if 'start_time' in locals() else 0
-                logger.warning(f"Cache write error: {e}")
-                metrics.record_apm_operation("cache.set", duration_ms, success=False, error=str(e))
-            
-            return response
-        return decorated_function
-    return decorator
+# Cache decorator imported from cache_utils module
+cache_response = cache_utils.cache_response
 
 @app.route('/')
 @cache_response(ttl=60)  # Cache for 1 minute
@@ -168,7 +116,7 @@ def info():
         'environment': ENVIRONMENT,
         'host': request.host,
         'remote_addr': request.remote_addr,
-        'redis_connected': redis_client is not None
+        'redis_connected': cache_utils.redis_client is not None
     }), 200
 
 @app.route('/cache/stats')
