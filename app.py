@@ -182,15 +182,21 @@ def cache_response(ttl=REDIS_TTL):
                 if isinstance(response, tuple) and len(response) == 2:
                     data, status = response
                     if status == 200 and hasattr(data, 'get_json'):
+                        start_time = time.time()
                         json_data = data.get_json()
                         redis_client.setex(
                             cache_key,
                             ttl,
                             json.dumps(json_data)
                         )
+                        duration_ms = (time.time() - start_time) * 1000
+                        _record_apm_operation("cache.set", duration_ms, success=True)
                         logger.debug(f"Cached response for {cache_key} (TTL: {ttl}s)")
             except Exception as e:
+                start_time = time.time()
+                duration_ms = (time.time() - start_time) * 1000 if 'start_time' in locals() else 0
                 logger.warning(f"Cache write error: {e}")
+                _record_apm_operation("cache.set", duration_ms, success=False, error=str(e))
             
             return response
         return decorated_function
