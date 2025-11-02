@@ -1,12 +1,14 @@
 name: CD - Deploy to Kubernetes
 
+# Disabled for practice environment - uncomment to enable
+# on:
+#   push:
+#     branches: [ main ]
+#     paths-ignore:
+#       - '**.md'
+#       - '.github/**'
 on:
-  push:
-    branches: [ main ]
-    paths-ignore:
-      - '**.md'
-      - '.github/**'
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger only for practice
 
 jobs:
   deploy:
