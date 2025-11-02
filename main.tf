@@ -10,13 +10,13 @@ terraform {
 }
 
 provider "kubernetes" {
-  # ????????????Minikube?kind?k3d??????
-  # ~/.kube/config???????????????
-  # ??????????????????????????????????
+  # ローカルのエミュレータ（Minikube、kind、k3dなど）を使用
+  # ~/.kube/configのデフォルトコンテキストを使用
+  # 特定のコンテキストを使用する場合は以下の行のコメントを外してください
   config_path = "~/.kube/config"
-  # config_context = "minikube"  # Minikube???
-  # config_context = "kind-kind"  # kind???
-  # config_context = "k3d-default"  # k3d???
+  # config_context = "minikube"  # Minikubeの場合
+  # config_context = "kind-kind"  # kindの場合
+  # config_context = "k3d-default"  # k3dの場合
 }
 
 # Namespace
@@ -26,7 +26,7 @@ resource "kubernetes_namespace" "sample_app" {
   }
 }
 
-# ConfigMap????????????
+# ConfigMap（アプリケーション設定）
 resource "kubernetes_config_map" "app_config" {
   metadata {
     name      = "app-config"
@@ -78,7 +78,7 @@ resource "kubernetes_deployment" "sample_app" {
             container_port = 8080
           }
 
-          # ConfigMap???????????
+          # ConfigMapから環境変数を読み込む
           env {
             name = "ENVIRONMENT"
             value = "kubernetes"
@@ -114,7 +114,7 @@ resource "kubernetes_deployment" "sample_app" {
             }
           }
 
-          # Liveness Probe???????????????
+          # Liveness Probe（コンテナが生きているか確認）
           liveness_probe {
             http_get {
               path = "/health"
@@ -126,7 +126,7 @@ resource "kubernetes_deployment" "sample_app" {
             failure_threshold      = 3
           }
 
-          # Readiness Probe?????????????????????????
+          # Readiness Probe（トラフィックを受け付ける準備ができているか確認）
           readiness_probe {
             http_get {
               path = "/ready"
