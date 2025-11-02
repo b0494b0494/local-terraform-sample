@@ -12,6 +12,9 @@ services:
       - ENVIRONMENT=local-docker
       - PORT=8080
       - DEBUG=True  # ??????False?????
+      - APP_NAME=sample-app
+      - APP_VERSION=1.0.0
+      - LOG_LEVEL=INFO
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
