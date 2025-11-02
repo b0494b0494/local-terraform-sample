@@ -31,7 +31,7 @@ jobs:
     - name: Lint Python code
       run: |
         pip install flake8
-        flake8 app.py llm_app.py test_app.py --max-line-length=120 --ignore=E501 || true
+        flake8 app.py llm_app.py auth.py migration.py app/ tests/ --max-line-length=120 --ignore=E501,W503 || true
 
   build:
     runs-on: ubuntu-latest
