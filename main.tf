@@ -231,6 +231,62 @@ resource "kubernetes_deployment" "sample_app" {
             }
           }
 
+          # Database connection (if enabled)
+          dynamic "env" {
+            for_each = var.enable_database ? [1] : []
+            content {
+              name  = "DATABASE_HOST"
+              value = "${var.app_name}-postgresql"
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.enable_database ? [1] : []
+            content {
+              name  = "DATABASE_PORT"
+              value = "5432"
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.enable_database ? [1] : []
+            content {
+              name = "DATABASE_NAME"
+              value_from {
+                secret_key_ref {
+                  name = kubernetes_secret.database_credentials[0].metadata[0].name
+                  key  = "database"
+                }
+              }
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.enable_database ? [1] : []
+            content {
+              name = "DATABASE_USER"
+              value_from {
+                secret_key_ref {
+                  name = kubernetes_secret.database_credentials[0].metadata[0].name
+                  key  = "username"
+                }
+              }
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.enable_database ? [1] : []
+            content {
+              name = "DATABASE_PASSWORD"
+              value_from {
+                secret_key_ref {
+                  name = kubernetes_secret.database_credentials[0].metadata[0].name
+                  key  = "password"
+                }
+              }
+            }
+          }
+
           # Secretから機密情報を読み込む（例：API Key）
           env {
             name = "API_KEY"

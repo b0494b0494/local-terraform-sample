@@ -168,3 +168,35 @@ variable "cronjob_schedule" {
   type        = string
   default     = "0 2 * * *"  # Format: minute hour day month weekday
 }
+
+# Database Variables
+variable "enable_database" {
+  description = "Enable PostgreSQL database"
+  type        = bool
+  default     = false
+}
+
+variable "database_name" {
+  description = "PostgreSQL database name"
+  type        = string
+  default     = "sampleapp"
+}
+
+variable "database_user" {
+  description = "PostgreSQL database user"
+  type        = string
+  default     = "appuser"
+}
+
+variable "database_password" {
+  description = "PostgreSQL database password (WARNING: For demo only, use secrets in production)"
+  type        = string
+  default     = "demo_password_123"
+  sensitive   = true
+}
+
+variable "database_storage_size" {
+  description = "Storage size for PostgreSQL persistent volume"
+  type        = string
+  default     = "5Gi"
+}
