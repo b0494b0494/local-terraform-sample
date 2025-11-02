@@ -76,11 +76,9 @@ make test             # Run tests
 - **[docs/PRACTICE.md](./docs/PRACTICE.md)** - Practice exercises (beginner to advanced)
 - **[docs/QUICKREF.md](./docs/QUICKREF.md)** - Quick reference (common commands)
 - **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Troubleshooting guide
-- **[docs/CHANGELOG.md](./docs/CHANGELOG.md)** - Changelog
 
 ### Feature-Specific Guides
 
-- **[docs/PHASE1_USAGE.md](./docs/PHASE1_USAGE.md)** - Secrets, Variables, Ingress
 - **[docs/HPA_GUIDE.md](./docs/HPA_GUIDE.md)** - Horizontal Pod Autoscaler
 - **[docs/STORAGE_GUIDE.md](./docs/STORAGE_GUIDE.md)** - Persistent Volumes
 - **[docs/RBAC_GUIDE.md](./docs/RBAC_GUIDE.md)** - ServiceAccount & RBAC
