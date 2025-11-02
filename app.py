@@ -3,7 +3,7 @@
 シンプルなサンプルアプリケーション
 ローカルで動作する簡単なHTTPサーバー
 """
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, g
 import os
 import logging
 from datetime import datetime
