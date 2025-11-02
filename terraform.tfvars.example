@@ -35,3 +35,4 @@ storage_host_path         = "/tmp/k8s-storage"
 
 # Monitoring (optional)
 enable_prometheus = false
+enable_grafana     = false

@@ -77,3 +77,13 @@ output "prometheus_namespace" {
   description = "Prometheus namespace"
   value       = var.enable_prometheus ? kubernetes_namespace.monitoring.metadata[0].name : null
 }
+
+output "grafana_enabled" {
+  description = "Whether Grafana is enabled"
+  value       = var.enable_grafana
+}
+
+output "grafana_service" {
+  description = "Grafana service name (if enabled)"
+  value       = var.enable_grafana ? kubernetes_service.grafana[0].metadata[0].name : null
+}

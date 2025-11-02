@@ -179,32 +179,150 @@ resource "kubernetes_service" "prometheus" {
   }
 }
 
-# ServiceMonitor (optional - requires Prometheus Operator)
-# Uncomment if using Prometheus Operator
-# resource "kubernetes_manifest" "service_monitor" {
-#   count = var.enable_prometheus ? 1 : 0
-#
-#   manifest = {
-#     apiVersion = "monitoring.coreos.com/v1"
-#     kind       = "ServiceMonitor"
-#     metadata = {
-#       name      = "${var.app_name}-monitor"
-#       namespace = kubernetes_namespace.sample_app.metadata[0].name
-#       labels = {
-#         app = var.app_name
-#       }
-#     }
-#     spec = {
-#       selector = {
-#         matchLabels = {
-#           app = var.app_name
-#         }
-#       }
-#       endpoints = [{
-#         port   = "http"
-#         path   = "/metrics"
-#         interval = "30s"
-#       }]
-#     }
-#   }
-# }
+# Grafana Deployment
+resource "kubernetes_deployment" "grafana" {
+  count = var.enable_grafana ? 1 : 0
+
+  metadata {
+    name      = "grafana"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+    labels = {
+      app = "grafana"
+    }
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app = "grafana"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "grafana"
+        }
+      }
+
+      spec {
+        container {
+          image = "grafana/grafana:latest"
+          name  = "grafana"
+
+          port {
+            container_port = 3000
+          }
+
+          env {
+            name  = "GF_SECURITY_ADMIN_USER"
+            value = "admin"
+          }
+
+          env {
+            name  = "GF_SECURITY_ADMIN_PASSWORD"
+            value = "admin"  # Change in production!
+          }
+
+          env {
+            name  = "GF_SERVER_ROOT_URL"
+            value = "%(protocol)s://%(domain)s:%(http_port)s/"
+          }
+
+          # Prometheus datasource configuration
+          env {
+            name  = "GF_INSTALL_PLUGINS"
+            value = ""
+          }
+
+          volume_mount {
+            name       = "grafana-storage"
+            mount_path = "/var/lib/grafana"
+          }
+
+          volume_mount {
+            name       = "grafana-datasource"
+            mount_path = "/etc/grafana/provisioning/datasources"
+          }
+
+          resources {
+            requests = {
+              cpu    = "100m"
+              memory = "256Mi"
+            }
+            limits = {
+              cpu    = "500m"
+              memory = "512Mi"
+            }
+          }
+        }
+
+        volume {
+          name = "grafana-storage"
+          empty_dir {}
+        }
+
+        volume {
+          name = "grafana-datasource"
+          config_map {
+            name = kubernetes_config_map.grafana_datasource[0].metadata[0].name
+          }
+        }
+      }
+    }
+  }
+}
+
+# Grafana DataSource ConfigMap (Prometheus connection)
+resource "kubernetes_config_map" "grafana_datasource" {
+  count = var.enable_grafana ? 1 : 0
+
+  metadata {
+    name      = "grafana-datasource"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+    labels = {
+      app = "grafana"
+    }
+  }
+
+  data = {
+    "prometheus.yaml" = <<-EOF
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://prometheus:9090
+          isDefault: true
+          editable: true
+      EOF
+  }
+}
+
+# Grafana Service
+resource "kubernetes_service" "grafana" {
+  count = var.enable_grafana ? 1 : 0
+
+  metadata {
+    name      = "grafana"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+    labels = {
+      app = "grafana"
+    }
+  }
+
+  spec {
+    selector = {
+      app = "grafana"
+    }
+
+    port {
+      port        = 3000
+      target_port = 3000
+    }
+
+    type = "ClusterIP"
+  }
+}
