@@ -1,134 +1,134 @@
-# ローカルTerraform練習用サンプルアプリ
+# Local Terraform Practice Sample App
 
-ローカルのエミュレータ環境で完結するTerraformとKubernetesの練習用アプリです。
+A simple sample application for practicing Terraform and Kubernetes in a local emulator environment.
 
-## 必要な環境
+## Prerequisites
 
 - Docker & Docker Compose
 - Terraform >= 1.0
-- Kubernetes（Minikube/kind/k3d）+ kubectl
+- Kubernetes (Minikube/kind/k3d) + kubectl
 
-## クイックスタート
+## Quick Start
 
-### 1. アプリを起動（最も簡単）
+### 1. Start the App (Easiest Way)
 
 ```bash
 make docker-compose-up
-# または
+# or
 docker-compose up -d
 ```
 
-アクセス: `http://localhost:8080`
+Access: `http://localhost:8080`
 
-### 2. LLMオブザーバビリティアプリを起動
+### 2. Start LLM Observability App
 
 ```bash
 docker-compose up llm-app -d
 ```
 
-アクセス: `http://localhost:8081`
+Access: `http://localhost:8081`
 
-**オブザーバビリティ機能**:
-- 構造化ログ（JSON形式）
-- Prometheus形式のメトリクス（`/metrics`）
-- トレーシング（`/traces`）
-- ダッシュボード（`observability_dashboard.html`をブラウザで開く）
+**Observability Features**:
+- Structured logging (JSON format)
+- Prometheus format metrics (`/metrics`)
+- Tracing (`/traces`)
+- Dashboard (open `observability_dashboard.html` in browser)
 
-### 3. TerraformでKubernetesにデプロイ
+### 3. Deploy to Kubernetes with Terraform
 
 ```bash
-# Kubernetes環境を準備（Minikubeの場合）
+# Prepare Kubernetes environment (Minikube example)
 minikube start
 eval $(minikube docker-env)
 docker build -t sample-app:latest .
 
-# Terraformでデプロイ
+# Deploy with Terraform
 terraform init
 terraform apply
 
-# 確認
+# Verify
 kubectl get all -n sample-app
 kubectl port-forward -n sample-app svc/sample-app-service 8080:80
 ```
 
-### 4. クリーンアップ
+### 4. Cleanup
 
 ```bash
 terraform destroy
 docker-compose down
 ```
 
-## 便利なコマンド
+## Useful Commands
 
 ```bash
-make help              # コマンド一覧
-make docker-compose-up # アプリ起動
-make terraform-init    # Terraform初期化
-make terraform-apply   # Terraformでデプロイ
-make test             # テスト実行
+make help              # List all commands
+make docker-compose-up # Start app
+make terraform-init    # Initialize Terraform
+make terraform-apply   # Deploy with Terraform
+make test             # Run tests
 ```
 
-## 学習リソース
+## Learning Resources
 
-- **[docs/PRACTICE.md](./docs/PRACTICE.md)** - 練習課題集（初級〜上級）
-- **[docs/QUICKREF.md](./docs/QUICKREF.md)** - クイックリファレンス（よく使うコマンド）
-- **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - トラブルシューティング
-- **[docs/CHANGELOG.md](./docs/CHANGELOG.md)** - 変更履歴
+- **[docs/PRACTICE.md](./docs/PRACTICE.md)** - Practice exercises (beginner to advanced)
+- **[docs/QUICKREF.md](./docs/QUICKREF.md)** - Quick reference (common commands)
+- **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Troubleshooting guide
+- **[docs/CHANGELOG.md](./docs/CHANGELOG.md)** - Changelog
 
-## LLMオブザーバビリティ練習
+## LLM Observability Practice
 
-最近流行りのLLMアプリケーションのオブザーバビリティ（可観測性）をローカルで練習できます。
+Practice observability (monitoring, logging, tracing) for LLM applications locally.
 
-### 機能
+### Features
 
-1. **構造化ログ**: JSON形式のログ出力
-2. **メトリクス**: Prometheus形式のメトリクス（リクエスト数、レスポンスタイム、トークン数など）
-3. **トレーシング**: 簡易的な分散トレーシング（OpenTelemetry風）
-4. **ダッシュボード**: HTMLベースの簡易ダッシュボード
+1. **Structured Logging**: JSON format log output
+2. **Metrics**: Prometheus format metrics (request count, response time, tokens, etc.)
+3. **Tracing**: Simple distributed tracing (OpenTelemetry-style)
+4. **Dashboard**: HTML-based simple dashboard
 
-### 使い方
+### Usage
 
 ```bash
-# LLMアプリを起動
+# Start LLM app
 docker-compose up llm-app -d
 
-# チャットAPIをテスト
+# Test chat API
 curl -X POST http://localhost:8081/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "Hello!"}'
 
-# メトリクスを確認
+# Check metrics
 curl http://localhost:8081/metrics
 
-# トレーシングデータを確認
+# Check tracing data
 curl http://localhost:8081/traces
 
-# ダッシュボードを開く（ブラウザで）
+# Open dashboard (in browser)
 open observability_dashboard.html
 ```
 
-## セキュリティ注意
+## Security Notice
 
-⚠️ **ローカル練習環境用です。本番環境では使用しないでください。**
+⚠️ **For local practice environment only. Do not use in production.**
 
-- `DEBUG=True`は開発環境のみ
-- 機密情報はコードに含めない（`.gitignore`で除外済み）
+- `DEBUG=True` is for development only
+- Do not include secrets in code (excluded in `.gitignore`)
 
-## ファイル構成
+## File Structure
 
 ```
-app.py                      # Flaskアプリ
-llm_app.py                  # LLM風アプリ（オブザーバビリティ実装）
-observability_dashboard.html # オブザーバビリティダッシュボード
-docker-compose.yml          # Docker Compose設定
-main.tf                     # Terraform設定
-k8s-manifests.yaml         # Kubernetesマニフェスト（参考用）
-docs/                      # ドキュメント
-  PRACTICE.md              # 練習課題集
-  QUICKREF.md              # クイックリファレンス
-  TROUBLESHOOTING.md       # トラブルシューティング
-  CHANGELOG.md             # 変更履歴
-.cursorrules               # Cursorルール（セキュリティ）
+app.py                      # Flask app
+llm_app.py                  # LLM-style app (with observability)
+observability_dashboard.html # Observability dashboard
+docker-compose.yml          # Docker Compose configuration
+main.tf                     # Terraform configuration
+k8s-manifests.yaml         # Kubernetes manifests (reference)
+docs/                      # Documentation
+  PRACTICE.md              # Practice exercises
+  QUICKREF.md              # Quick reference
+  TROUBLESHOOTING.md       # Troubleshooting
+  CHANGELOG.md             # Changelog
+.cursorrules               # Cursor rules (security)
 ```
 
-詳細は各ドキュメントを参照してください。
+See each documentation file for details.
