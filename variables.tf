@@ -129,3 +129,16 @@ variable "enable_loki" {
   type        = bool
   default     = false
 }
+
+# Cache Variables
+variable "enable_redis" {
+  description = "Enable Redis cache layer"
+  type        = bool
+  default     = true
+}
+
+variable "redis_storage_size" {
+  description = "Storage size for Redis persistent volume"
+  type        = string
+  default     = "1Gi"
+}

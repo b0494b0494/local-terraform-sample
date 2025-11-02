@@ -149,6 +149,23 @@ resource "kubernetes_deployment" "sample_app" {
             }
           }
 
+          # Redis connection (if enabled)
+          dynamic "env" {
+            for_each = var.enable_redis ? [1] : []
+            content {
+              name  = "REDIS_HOST"
+              value = "${var.app_name}-redis"
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.enable_redis ? [1] : []
+            content {
+              name  = "REDIS_PORT"
+              value = "6379"
+            }
+          }
+
           # Secretから機密情報を読み込む（例：API Key）
           env {
             name = "API_KEY"
