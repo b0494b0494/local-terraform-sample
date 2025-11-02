@@ -22,3 +22,27 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
+
+  llm-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: llm-app
+    container_name: llm-app
+    ports:
+      - "8081:8080"
+    environment:
+      - ENVIRONMENT=local-docker
+      - PORT=8080
+      - DEBUG=True
+      - APP_NAME=llm-app
+      - APP_VERSION=1.0.0
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    command: python llm_app.py

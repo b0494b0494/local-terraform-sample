@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Observability Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { margin-bottom: 30px; color: #60a5fa; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #334155;
+        }
+        .card h2 { color: #60a5fa; margin-bottom: 15px; font-size: 18px; }
+        .metric { font-size: 32px; font-weight: bold; color: #34d399; margin: 10px 0; }
+        .metric-label { color: #94a3b8; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #334155; }
+        th { color: #60a5fa; font-weight: 600; }
+        .status-success { color: #34d399; }
+        .status-error { color: #f87171; }
+        .refresh-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .refresh-btn:hover { background: #2563eb; }
+        .log-viewer {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .log-entry { margin: 5px 0; padding: 5px; border-left: 3px solid #3b82f6; }
+        .log-entry.ERROR { border-color: #f87171; }
+        .log-entry.WARN { border-color: #fbbf24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>?? LLM Observability Dashboard</h1>
+        
+        <button class="refresh-btn" onclick="refreshAll()">?? Refresh All</button>
+        
+        <div class="grid">
+            <div class="card">
+                <h2>?? Metrics</h2>
+                <div id="metrics">
+                    <div class="metric" id="requests-total">-</div>
+                    <div class="metric-label">Total Requests</div>
+                    <div class="metric" id="tokens-total">-</div>
+                    <div class="metric-label">Tokens Generated</div>
+                    <div class="metric" id="errors-total">-</div>
+                    <div class="metric-label">Errors</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>?? Performance</h2>
+                <div id="performance">
+                    <div class="metric" id="avg-duration">-</div>
+                    <div class="metric-label">Avg Response Time (ms)</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>?? Recent Traces</h2>
+                <table id="traces-table">
+                    <thead>
+                        <tr>
+                            <th>Trace ID</th>
+                            <th>Operation</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="traces-body"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>?? Structured Logs</h2>
+            <div class="log-viewer" id="log-viewer">
+                <div class="log-entry">Loading logs...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        
+        async function fetchMetrics() {
+            try {
+                const response = await fetch(`${API_BASE}/metrics`);
+                const text = await response.text();
+                const lines = text.split('\n').filter(l => l && !l.startsWith('#'));
+                
+                let totalRequests = 0;
+                let tokens = 0;
+                let errors = 0;
+                let avgDuration = 0;
+                
+                lines.forEach(line => {
+                    if (line.includes('llm_requests_total')) {
+                        const match = line.match(/\}\s+(\d+)/);
+                        if (match) totalRequests += parseInt(match[1]);
+                    }
+                    if (line.includes('llm_tokens_generated_total')) {
+                        const match = line.match(/\}\s+(\d+)/);
+                        if (match) tokens = parseInt(match[1]);
+                    }
+                    if (line.includes('llm_errors_total')) {
+                        const match = line.match(/\}\s+(\d+)/);
+                        if (match) errors = parseInt(match[1]);
+                    }
+                    if (line.includes('llm_request_duration_seconds_avg')) {
+                        const match = line.match(/\}\s+([\d.]+)/);
+                        if (match) avgDuration = parseFloat(match[1]) * 1000;
+                    }
+                });
+                
+                document.getElementById('requests-total').textContent = totalRequests;
+                document.getElementById('tokens-total').textContent = tokens.toLocaleString();
+                document.getElementById('errors-total').textContent = errors;
+                document.getElementById('avg-duration').textContent = avgDuration.toFixed(2);
+            } catch (e) {
+                console.error('Failed to fetch metrics:', e);
+            }
+        }
+        
+        async function fetchTraces() {
+            try {
+                const response = await fetch(`${API_BASE}/traces`);
+                const data = await response.json();
+                const tbody = document.getElementById('traces-body');
+                tbody.innerHTML = '';
+                
+                data.traces.slice(-10).reverse().forEach(trace => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${trace.trace_id.substring(0, 8)}...</td>
+                        <td>${trace.operation}</td>
+                        <td>${trace.duration_ms.toFixed(2)}ms</td>
+                        <td class="status-${trace.status}">${trace.status}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (e) {
+                console.error('Failed to fetch traces:', e);
+            }
+        }
+        
+        function refreshAll() {
+            fetchMetrics();
+            fetchTraces();
+            document.getElementById('log-viewer').innerHTML = 
+                '<div class="log-entry">Logs are streamed to stdout/stderr. Check application logs for structured JSON logs.</div>';
+        }
+        
+        // ?????
+        refreshAll();
+        
+        // 5????????
+        setInterval(refreshAll, 5000);
+    </script>
+</body>
+</html>
