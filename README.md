@@ -87,6 +87,7 @@ make test             # Run tests
 - **[docs/NETWORK_POLICIES_GUIDE.md](./docs/NETWORK_POLICIES_GUIDE.md)** - Network Policies (security)
 - **[docs/INIT_CONTAINERS_GUIDE.md](./docs/INIT_CONTAINERS_GUIDE.md)** - Init Containers (dependency management)
 - **[docs/DATABASE_GUIDE.md](./docs/DATABASE_GUIDE.md)** - PostgreSQL database integration
+- **[docs/SIDECAR_GUIDE.md](./docs/SIDECAR_GUIDE.md)** - Sidecar pattern (multi-container pods)
 - **[docs/JOBS_GUIDE.md](./docs/JOBS_GUIDE.md)** - Jobs and CronJobs (task scheduling)
 - **[docs/PROMETHEUS_GUIDE.md](./docs/PROMETHEUS_GUIDE.md)** - Prometheus monitoring
 - **[docs/GRAFANA_GUIDE.md](./docs/GRAFANA_GUIDE.md)** - Grafana dashboards
