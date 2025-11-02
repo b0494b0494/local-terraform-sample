@@ -112,7 +112,7 @@ def info():
     info_data.update({
         'host': request.host,
         'remote_addr': request.remote_addr,
-        'redis_connected': cache_utils.redis_client is not None
+        'redis_connected': cache.redis_client is not None
     })
     return jsonify(info_data), 200
 
