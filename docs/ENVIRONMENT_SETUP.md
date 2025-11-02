@@ -153,12 +153,22 @@ kubectl version --client
 
 | Variable | Default | Description |
 |---------|---------|-------------|
-| `ENVIRONMENT` | `local` | Environment name |
+| `ENVIRONMENT` | `local` | Environment name (local, development, staging, production) |
 | `PORT` | `8080` | Application port |
-| `DEBUG` | `True` | Debug mode (set False in prod) |
+| `DEBUG` | `False` | Debug mode (set True for development only) |
 | `APP_NAME` | `sample-app` | Application name |
 | `APP_VERSION` | `1.0.0` | Application version |
-| `LOG_LEVEL` | `INFO` | Logging level |
+| `LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) |
+| `DATABASE_HOST` | - | PostgreSQL host (optional) |
+| `DATABASE_PORT` | `5432` | PostgreSQL port |
+| `DATABASE_NAME` | - | Database name |
+| `DATABASE_USER` | - | Database user |
+| `DATABASE_PASSWORD` | - | Database password |
+| `REDIS_HOST` | `localhost` | Redis host |
+| `REDIS_PORT` | `6379` | Redis port |
+| `REDIS_TTL` | `300` | Cache TTL in seconds |
+| `JWT_SECRET` | - | JWT secret key (auto-generated if not set) |
+| `JWT_EXPIRATION_HOURS` | `24` | JWT token expiration hours |
 
 ### Terraform Variables
 
