@@ -16,10 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py .
 COPY llm_app.py .
 COPY auth.py .
-COPY metrics.py .
-COPY db_utils.py .
-COPY cache_utils.py .
-COPY config.py .
+COPY app/ ./app/
 
 # ????????????????root?????????
 RUN chown -R appuser:appuser /app

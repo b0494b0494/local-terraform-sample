@@ -12,10 +12,7 @@ import json
 from functools import wraps
 from psycopg2.extras import RealDictCursor  # For dict cursor
 import auth
-import metrics
-import db_utils
-import cache_utils
-import config
+from app import metrics, database, cache, config
 import time
 from collections import defaultdict
 
@@ -103,7 +100,7 @@ def ready():
     return jsonify({
         'status': 'ready',
         'service': APP_NAME,
-        'database_connected': db_utils.db_pool is not None
+        'database_connected': database.db_pool is not None
     }), 200
 
 @app.route('/info')
@@ -135,7 +132,7 @@ def cache_clear():
             'message': 'Redis not configured'
         }), 503
     
-    success = cache_utils.clear_cache()
+    success = cache.clear_cache()
     if success:
         return jsonify({
             'status': 'success',
