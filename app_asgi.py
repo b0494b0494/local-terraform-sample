@@ -40,6 +40,7 @@ db_pool = database.initialize_db_pool()
 @app.get("/")
 async def root(request: Request):
     """Root endpoint - FastAPI version"""
+    start_time = time.time()
     logger.info(f"GET / - FastAPI endpoint from {request.client.host if request.client else 'unknown'}")
     
     # Try to use cache decorator pattern
@@ -53,6 +54,8 @@ async def root(request: Request):
                 import json
                 data = json.loads(cached_data)
                 data["cached"] = True
+                response_time = time.time() - start_time
+                metrics.record_http_request("/", "GET", 200, response_time)
                 return data
         except Exception as e:
             logger.debug(f"Cache read error: {e}")
@@ -76,18 +79,25 @@ async def root(request: Request):
         except Exception as e:
             logger.debug(f"Cache write error: {e}")
     
+    # Record response time and metrics
+    response_time = time.time() - start_time
+    metrics.record_http_request("/", "GET", 200, response_time)
+    
     return data
 
 
 @app.get("/health")
 async def health():
     """Health check endpoint - FastAPI version"""
-    metrics.record_request_metric("GET", "/health", 200)
-    return {
+    start_time = time.time()
+    data = {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
         "framework": "FastAPI/ASGI"
     }
+    response_time = time.time() - start_time
+    metrics.record_http_request("/health", "GET", 200, response_time)
+    return data
 
 
 @app.get("/ready")
