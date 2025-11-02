@@ -22,50 +22,56 @@ provider "kubernetes" {
 # Namespace
 resource "kubernetes_namespace" "sample_app" {
   metadata {
-    name = "sample-app"
+    name = var.app_name
   }
 }
 
 # ConfigMap（アプリケーション設定）
 resource "kubernetes_config_map" "app_config" {
   metadata {
-    name      = "app-config"
+    name      = "${var.app_name}-config"
     namespace = kubernetes_namespace.sample_app.metadata[0].name
     labels = {
-      app = "sample-app"
+      app     = var.app_name
+      env     = var.environment
+      version = var.app_version
     }
   }
 
   data = {
-    APP_NAME    = "sample-app"
-    APP_VERSION = "1.0.0"
-    LOG_LEVEL   = "INFO"
+    APP_NAME    = var.app_name
+    APP_VERSION = var.app_version
+    LOG_LEVEL   = var.log_level
   }
 }
 
 # Deployment
 resource "kubernetes_deployment" "sample_app" {
   metadata {
-    name      = "sample-app"
+    name      = var.app_name
     namespace = kubernetes_namespace.sample_app.metadata[0].name
     labels = {
-      app = "sample-app"
+      app     = var.app_name
+      env     = var.environment
+      version = var.app_version
     }
   }
 
   spec {
-    replicas = 2
+    replicas = var.replica_count
 
     selector {
       match_labels = {
-        app = "sample-app"
+        app = var.app_name
       }
     }
 
     template {
       metadata {
         labels = {
-          app = "sample-app"
+          app     = var.app_name
+          env     = var.environment
+          version = var.app_version
         }
       }
 
@@ -114,6 +120,17 @@ resource "kubernetes_deployment" "sample_app" {
             }
           }
 
+          # Secretから機密情報を読み込む（例：API Key）
+          env {
+            name = "API_KEY"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret.app_secret.metadata[0].name
+                key  = "api_key"
+              }
+            }
+          }
+
           # Liveness Probe（コンテナが生きているか確認）
           liveness_probe {
             http_get {
@@ -140,12 +157,12 @@ resource "kubernetes_deployment" "sample_app" {
 
           resources {
             requests = {
-              cpu    = "100m"
-              memory = "128Mi"
+              cpu    = var.cpu_request
+              memory = var.memory_request
             }
             limits = {
-              cpu    = "200m"
-              memory = "256Mi"
+              cpu    = var.cpu_limit
+              memory = var.memory_limit
             }
           }
         }
@@ -157,16 +174,17 @@ resource "kubernetes_deployment" "sample_app" {
 # Service
 resource "kubernetes_service" "sample_app" {
   metadata {
-    name      = "sample-app-service"
+    name      = "${var.app_name}-service"
     namespace = kubernetes_namespace.sample_app.metadata[0].name
     labels = {
-      app = "sample-app"
+      app = var.app_name
+      env = var.environment
     }
   }
 
   spec {
     selector = {
-      app = "sample-app"
+      app = var.app_name
     }
 
     port {

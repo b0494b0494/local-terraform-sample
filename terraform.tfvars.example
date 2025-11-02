@@ -1,0 +1,23 @@
+# Terraform Variables Example
+# Copy this file to terraform.tfvars and customize for your environment
+# ?? Never commit terraform.tfvars to git (already in .gitignore)
+
+environment = "dev"
+app_name    = "sample-app"
+app_version = "1.0.0"
+
+# Scaling
+replica_count = 2
+
+# Resource Limits
+cpu_request    = "100m"
+cpu_limit      = "200m"
+memory_request = "128Mi"
+memory_limit   = "256Mi"
+
+# Logging
+log_level = "INFO"
+
+# Ingress (optional)
+enable_ingress = false
+ingress_host   = "sample-app.local"
