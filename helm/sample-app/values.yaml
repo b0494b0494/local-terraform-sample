@@ -1,0 +1,86 @@
+# Default values for sample-app
+# This is a YAML representation of Terraform variables
+
+# Application Configuration
+app:
+  name: sample-app
+  version: "1.0.0"
+  environment: dev
+
+# Deployment Configuration
+deployment:
+  replicaCount: 2
+  image:
+    repository: sample-app
+    tag: latest
+    pullPolicy: IfNotPresent
+
+# Resource Limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Service Configuration
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+# ConfigMap
+config:
+  appName: sample-app
+  appVersion: "1.0.0"
+  logLevel: INFO
+
+# Features Flags
+features:
+  enableRedis: true
+  enableDatabase: false
+  enableIngress: false
+  enableHPA: false
+  enablePrometheus: false
+  enableGrafana: false
+  enableLoki: false
+  enableNetworkPolicies: false
+  enableRBAC: true
+
+# Redis Configuration (if enabled)
+redis:
+  enabled: true
+  storageSize: 1Gi
+
+# Database Configuration (if enabled)
+database:
+  enabled: false
+  name: sampleapp
+  user: appuser
+  storageSize: 5Gi
+
+# RBAC Configuration
+rbac:
+  enabled: true
+
+# Ingress Configuration
+ingress:
+  enabled: false
+  host: sample-app.local
+
+# HPA Configuration
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPU: 80
+
+# Monitoring
+monitoring:
+  prometheus:
+    enabled: false
+  grafana:
+    enabled: false
+  loki:
+    enabled: false
