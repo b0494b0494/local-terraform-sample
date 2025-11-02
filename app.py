@@ -111,14 +111,13 @@ def ready():
 def info():
     """Return application information"""
     logger.info("Info endpoint requested")
-    return jsonify({
-        'app_name': APP_NAME,
-        'version': APP_VERSION,
-        'environment': ENVIRONMENT,
+    info_data = config.Config.get_summary()
+    info_data.update({
         'host': request.host,
         'remote_addr': request.remote_addr,
         'redis_connected': cache_utils.redis_client is not None
-    }), 200
+    })
+    return jsonify(info_data), 200
 
 @app.route('/cache/stats')
 def cache_stats():
