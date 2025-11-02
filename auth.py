@@ -25,6 +25,29 @@ JWT_EXPIRATION_HOURS = int(os.getenv('JWT_EXPIRATION_HOURS', '24'))
 # Format: {api_key: {user: username, roles: [role1, role2], created_at: timestamp}}
 API_KEYS = {}
 
+# Demo users with hashed passwords (in production, store in database)
+# Format: {username: {password_hash: str, roles: [role1, role2]}}
+# Pre-hashed passwords for demo (admin/admin123, user/user123)
+# Note: These hashes are generated at module load time to ensure consistency
+DEMO_USERS = {}
+
+def get_user(username: str):
+    """Get user data by username (in production, query database)"""
+    return DEMO_USERS.get(username)
+
+def authenticate_user(username: str, password: str):
+    """Authenticate a user with username and password"""
+    user = get_user(username)
+    if not user:
+        return None
+    
+    if verify_password(password, user['password_hash']):
+        return {
+            'username': username,
+            'roles': user['roles']
+        }
+    return None
+
 def hash_password(password: str) -> str:
     """Hash a password using bcrypt"""
     salt = bcrypt.gensalt()
@@ -248,3 +271,18 @@ def rate_limit(max_requests=60, window_seconds=60, key_func=None):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+# Initialize demo users with hashed passwords
+def _init_demo_users():
+    """Initialize demo users with hashed passwords"""
+    DEMO_USERS['admin'] = {
+        'password_hash': hash_password('admin123'),
+        'roles': ['admin', 'user']
+    }
+    DEMO_USERS['user'] = {
+        'password_hash': hash_password('user123'),
+        'roles': ['user']
+    }
+
+# Initialize on module load
+_init_demo_users()

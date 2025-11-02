@@ -648,32 +648,20 @@ def login():
         username = data.get('username', '')
         password = data.get('password', '')
         
-        # Simple demo authentication (in production, check against database)
-        # Demo credentials: user: admin, password: admin123
-        # For demo purposes, still using plain comparison
-        # In production, use: verify_password(password, stored_hash)
-        if username == 'admin' and password == 'admin123':
-            token = auth.create_jwt_token(username, roles=['admin', 'user'])
-            api_key = auth.register_api_key(username, roles=['admin', 'user'])
+        # Authenticate user with hashed password verification
+        user_data = auth.authenticate_user(username, password)
+        
+        if user_data:
+            # Authentication successful
+            token = auth.create_jwt_token(username, roles=user_data['roles'])
+            api_key = auth.register_api_key(username, roles=user_data['roles'])
             
             return jsonify({
                 'status': 'success',
                 'token': token,
                 'api_key': api_key,
                 'user': username,
-                'roles': ['admin', 'user'],
-                'expires_in': auth.JWT_EXPIRATION_HOURS * 3600
-            }), 200
-        elif username == 'user' and password == 'user123':
-            token = auth.create_jwt_token(username, roles=['user'])
-            api_key = auth.register_api_key(username, roles=['user'])
-            
-            return jsonify({
-                'status': 'success',
-                'token': token,
-                'api_key': api_key,
-                'user': username,
-                'roles': ['user'],
+                'roles': user_data['roles'],
                 'expires_in': auth.JWT_EXPIRATION_HOURS * 3600
             }), 200
         else:
