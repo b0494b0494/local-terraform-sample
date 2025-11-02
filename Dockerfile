@@ -15,8 +15,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY app.py .
 COPY llm_app.py .
-COPY auth.py .
+COPY migration.py .
 COPY app/ ./app/
+COPY routes/ ./routes/
+COPY auth_pkg/ ./auth_pkg/
 
 # ????????????????root?????????
 RUN chown -R appuser:appuser /app

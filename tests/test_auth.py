@@ -9,9 +9,12 @@ import sys
 import os
 
 # Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
 
-from app import app
+# Import app from app.py (not from app/ package)
+import app as app_module
+app = app_module.app
 
 
 class TestAuthEndpoints(unittest.TestCase):
