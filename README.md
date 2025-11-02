@@ -70,12 +70,24 @@ make test             # Run tests
 
 ## Learning Resources
 
+- **[docs/LEARNING_PATH.md](./docs/LEARNING_PATH.md)** - Structured learning path (start here!)
 - **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - System architecture and diagrams
 - **[docs/ENVIRONMENT_SETUP.md](./docs/ENVIRONMENT_SETUP.md)** - Complete setup guide
 - **[docs/PRACTICE.md](./docs/PRACTICE.md)** - Practice exercises (beginner to advanced)
 - **[docs/QUICKREF.md](./docs/QUICKREF.md)** - Quick reference (common commands)
 - **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Troubleshooting guide
 - **[docs/CHANGELOG.md](./docs/CHANGELOG.md)** - Changelog
+
+### Feature-Specific Guides
+
+- **[docs/PHASE1_USAGE.md](./docs/PHASE1_USAGE.md)** - Secrets, Variables, Ingress
+- **[docs/HPA_GUIDE.md](./docs/HPA_GUIDE.md)** - Horizontal Pod Autoscaler
+- **[docs/STORAGE_GUIDE.md](./docs/STORAGE_GUIDE.md)** - Persistent Volumes
+- **[docs/RBAC_GUIDE.md](./docs/RBAC_GUIDE.md)** - ServiceAccount & RBAC
+- **[docs/PROMETHEUS_GUIDE.md](./docs/PROMETHEUS_GUIDE.md)** - Prometheus monitoring
+- **[docs/GRAFANA_GUIDE.md](./docs/GRAFANA_GUIDE.md)** - Grafana dashboards
+- **[docs/LOKI_GUIDE.md](./docs/LOKI_GUIDE.md)** - Loki log aggregation
+- **[docs/CICD_GUIDE.md](./docs/CICD_GUIDE.md)** - CI/CD workflows
 
 ## LLM Observability Practice
 
