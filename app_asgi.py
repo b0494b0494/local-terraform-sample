@@ -392,7 +392,7 @@ async def api_key_test(x_api_key: Optional[str] = Header(None)):
 async def get_metrics():
     """Prometheus metrics endpoint - FastAPI version"""
     try:
-        metrics_text = metrics.get_prometheus_metrics()
+        metrics_text = metrics.get_prometheus_metrics(APP_NAME)
         from fastapi.responses import Response
         return Response(content=metrics_text, media_type="text/plain")
     except Exception as e:
