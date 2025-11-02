@@ -3,7 +3,8 @@
 Sample Application for Terraform and Kubernetes Practice
 A simple HTTP server for local practice with observability, authentication, and caching features
 """
-from flask import Flask, jsonify, request, g
+from flask import Flask, jsonify, request, g, Response
+from typing import Dict, Any, Optional, Tuple
 import os
 import logging
 from datetime import datetime
@@ -66,7 +67,7 @@ def hello():
     })
 
 @app.route('/health')
-def health():
+def health() -> Tuple[Response, int]:
     """Health check endpoint"""
     logger.debug("Health check requested")
     return jsonify({
@@ -76,7 +77,7 @@ def health():
     }), 200
 
 @app.route('/ready')
-def ready():
+def ready() -> Tuple[Response, int]:
     """Readiness check endpoint"""
     # Check database connection if configured
     if database.db_pool:
@@ -117,14 +118,14 @@ def info():
     return jsonify(info_data), 200
 
 @app.route('/cache/stats')
-def cache_stats():
+def cache_stats() -> Tuple[Response, int]:
     """Return cache statistics"""
     stats = cache.get_cache_stats()
     status_code = 200 if stats.get('status') != 'error' else 500
     return jsonify(stats), status_code
 
 @app.route('/cache/clear', methods=['POST'])
-def cache_clear():
+def cache_clear() -> Tuple[Response, int]:
     """Clear cache endpoint"""
     if cache.redis_client is None:
         return jsonify({
@@ -165,7 +166,7 @@ def method_not_allowed(error):
     }), 405
 
 @app.errorhandler(500)
-def internal_error(error):
+def internal_error(error: Exception) -> Tuple[Response, int]:
     """Handle 500 errors"""
     logger.error(f"Internal server error: {error}", exc_info=True)
     return jsonify({
@@ -211,7 +212,7 @@ def after_request_metrics(response):
     return response
 
 @app.route('/metrics')
-def metrics_endpoint():
+def metrics_endpoint() -> Response:
     """Prometheus format metrics endpoint"""
     logger.debug("Metrics requested")
     output = metrics.get_prometheus_metrics(APP_NAME)
@@ -273,7 +274,7 @@ def db_status():
         }), 500
 
 @app.route('/db/query', methods=['POST'])
-def db_query():
+def db_query() -> Tuple[Response, int]:
     """Execute a simple database query (for testing)"""
     if database.db_pool is None:
         return jsonify({
