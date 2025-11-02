@@ -227,7 +227,10 @@ app/
 
 **Benefits**:
 - Clear separation of concerns
-- Improved maintainability (~39% code reduction in app.py)
+- Improved maintainability (~39% code reduction in original app.py)
+- Advanced modularization: Split into `routes/` (6 files) and `auth_pkg/` (6 files)
+- Flask Blueprint pattern for route organization
+- Better separation of concerns for learning large-scale project structures
 - Type hints for better IDE support and type safety
 - Easy to extend and test
 - Python package best practices
@@ -237,14 +240,26 @@ app/
 ```mermaid
 graph TD
     Root["project-root/"] --> App["Application"]
-    App --> AppPy["app.py<br/>Main Flask app"]
+    App --> AppPy["app.py<br/>Blueprint Integration<br/>(147 lines)"]
+    App --> RoutesDir["routes/<br/>6 Blueprint modules"]
+    App --> AuthDir["auth_pkg/<br/>6 Auth modules"]
     App --> AppPkg["app/<br/>Package modules"]
     AppPkg --> Config["config.py<br/>Configuration"]
     AppPkg --> DB["database.py<br/>DB connection"]
     AppPkg --> Cache["cache.py<br/>Redis cache"]
     AppPkg --> Metrics["metrics.py<br/>Metrics & tracing"]
     App --> LLMPy["llm_app.py<br/>LLM app with observability"]
-    App --> AuthPy["auth.py<br/>Authentication"]
+    RoutesDir --> HealthPy["health.py<br/>Health endpoints"]
+    RoutesDir --> CachePy["cache.py<br/>Cache endpoints"]
+    RoutesDir --> MetricsPy["metrics.py<br/>Observability"]
+    RoutesDir --> DbPy["db.py<br/>Database endpoints"]
+    RoutesDir --> AuthRoutesPy["auth_routes.py<br/>Auth endpoints"]
+    RoutesDir --> ProtectedPy["protected.py<br/>Protected endpoints"]
+    AuthDir --> ConfigPy["config.py<br/>JWT config"]
+    AuthDir --> UsersPy["users.py<br/>User management"]
+    AuthDir --> JwtPy["jwt.py<br/>JWT tokens"]
+    AuthDir --> ApiKeysPy["api_keys.py<br/>API keys"]
+    AuthDir --> DecoratorsPy["decorators.py<br/>Decorators"]
     App --> Req["requirements.txt<br/>Dependencies"]
     
     Root --> IaC["Infrastructure as Code"]
