@@ -10,6 +10,9 @@ from datetime import datetime
 import redis
 import json
 from functools import wraps
+import psycopg2
+from psycopg2 import pool
+from psycopg2.extras import RealDictCursor
 
 # ロギング設定
 logging.basicConfig(
@@ -47,6 +50,53 @@ try:
 except (redis.ConnectionError, redis.TimeoutError) as e:
     logger.warning(f"Redis connection failed: {e}. Continuing without cache.")
     redis_client = None
+
+# Database connection pool
+db_pool = None
+try:
+    db_host = os.getenv('DATABASE_HOST')
+    db_port = os.getenv('DATABASE_PORT', '5432')
+    db_name = os.getenv('DATABASE_NAME')
+    db_user = os.getenv('DATABASE_USER')
+    db_password = os.getenv('DATABASE_PASSWORD')
+    
+    if db_host and db_name and db_user and db_password:
+        db_pool = psycopg2.pool.ThreadedConnectionPool(
+            minconn=1,
+            maxconn=5,
+            host=db_host,
+            port=db_port,
+            database=db_name,
+            user=db_user,
+            password=db_password
+        )
+        # Test connection
+        test_conn = db_pool.getconn()
+        db_pool.putconn(test_conn)
+        logger.info(f"Database connected to {db_host}:{db_port}/{db_name}")
+    else:
+        logger.info("Database credentials not set. Continuing without database.")
+except Exception as e:
+    logger.warning(f"Database connection failed: {e}. Continuing without database.")
+    db_pool = None
+
+def get_db_connection():
+    """Get database connection from pool"""
+    if db_pool is None:
+        return None
+    try:
+        return db_pool.getconn()
+    except Exception as e:
+        logger.error(f"Failed to get database connection: {e}")
+        return None
+
+def return_db_connection(conn):
+    """Return connection to pool"""
+    if db_pool and conn:
+        try:
+            db_pool.putconn(conn)
+        except Exception as e:
+            logger.error(f"Failed to return database connection: {e}")
 
 def cache_response(ttl=REDIS_TTL):
     """レスポンスをキャッシュするデコレータ"""
@@ -119,11 +169,29 @@ def health():
 @app.route('/ready')
 def ready():
     """Readiness check endpoint"""
-    # ここでデータベース接続などの確認を行う
+    # データベース接続確認
+    if db_pool:
+        conn = get_db_connection()
+        if conn:
+            try:
+                cur = conn.cursor()
+                cur.execute("SELECT 1")
+                cur.close()
+                return_db_connection(conn)
+                logger.debug("Database connection verified")
+            except Exception as e:
+                logger.warning(f"Database check failed: {e}")
+                return jsonify({
+                    'status': 'not_ready',
+                    'service': APP_NAME,
+                    'reason': 'database_check_failed'
+                }), 503
+    
     logger.debug("Readiness check requested")
     return jsonify({
         'status': 'ready',
-        'service': APP_NAME
+        'service': APP_NAME,
+        'database_connected': db_pool is not None
     }), 200
 
 @app.route('/info')
@@ -204,6 +272,72 @@ def metrics():
             'total': 0,  # 実際にはカウンターを実装
         }
     }), 200
+
+@app.route('/db/status')
+def db_status():
+    """データベース接続ステータス"""
+    if db_pool is None:
+        return jsonify({
+            'status': 'not_configured',
+            'message': 'Database not configured'
+        }), 200
+    
+    conn = get_db_connection()
+    if conn is None:
+        return jsonify({
+            'status': 'error',
+            'message': 'Failed to get database connection'
+        }), 500
+    
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT version();")
+        version = cur.fetchone()[0]
+        cur.close()
+        return_db_connection(conn)
+        
+        return jsonify({
+            'status': 'connected',
+            'version': version.split(',')[0]  # PostgreSQL version
+        }), 200
+    except Exception as e:
+        logger.error(f"Database status check failed: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/db/query', methods=['POST'])
+def db_query():
+    """Execute a simple database query (for testing)"""
+    if db_pool is None:
+        return jsonify({
+            'error': 'Database not configured'
+        }), 503
+    
+    try:
+        query = request.json.get('query', 'SELECT NOW() as current_time;')
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({
+                'error': 'Failed to get database connection'
+            }), 500
+        
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(query)
+        results = cur.fetchall()
+        cur.close()
+        return_db_connection(conn)
+        
+        return jsonify({
+            'status': 'success',
+            'results': [dict(row) for row in results]
+        }), 200
+    except Exception as e:
+        logger.error(f"Database query failed: {e}")
+        return jsonify({
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 8080))
