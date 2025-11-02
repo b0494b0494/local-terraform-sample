@@ -31,6 +31,10 @@ resource "kubernetes_config_map" "prometheus_config" {
         scrape_interval: 15s
         evaluation_interval: 15s
 
+      # Alerting rules configuration
+      rule_files:
+        - /etc/prometheus/alerts/*.yml
+
       scrape_configs:
         - job_name: 'sample-app'
           kubernetes_sd_configs:
@@ -121,6 +125,12 @@ resource "kubernetes_deployment" "prometheus" {
           }
 
           volume_mount {
+            name       = "prometheus-alerts"
+            mount_path = "/etc/prometheus/alerts"
+            read_only  = true
+          }
+
+          volume_mount {
             name       = "prometheus-storage"
             mount_path = "/prometheus"
           }
@@ -141,6 +151,13 @@ resource "kubernetes_deployment" "prometheus" {
           name = "prometheus-config"
           config_map {
             name = kubernetes_config_map.prometheus_config[0].metadata[0].name
+          }
+        }
+
+        volume {
+          name = "prometheus-alerts"
+          config_map {
+            name = kubernetes_config_map.prometheus_alerts[0].metadata[0].name
           }
         }
 

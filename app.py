@@ -14,6 +14,8 @@ import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 import auth
+import time
+from collections import defaultdict
 
 # ロギング設定
 logging.basicConfig(
@@ -28,6 +30,14 @@ app = Flask(__name__)
 APP_NAME = os.getenv('APP_NAME', 'sample-app')
 APP_VERSION = os.getenv('APP_VERSION', '1.0.0')
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')
+
+# Prometheus metrics storage
+_metrics = {
+    'http_requests_total': defaultdict(lambda: defaultdict(int)),  # path -> status -> count
+    'http_request_duration_seconds': [],  # List of durations
+    'app_database_connection_errors_total': 0,
+    'app_redis_connection_errors_total': 0,
+}
 
 # Redis接続設定
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
@@ -89,6 +99,7 @@ def get_db_connection():
         return db_pool.getconn()
     except Exception as e:
         logger.error(f"Failed to get database connection: {e}")
+        _metrics['app_database_connection_errors_total'] += 1
         return None
 
 def return_db_connection(conn):
@@ -265,16 +276,86 @@ def cache_clear():
             'message': str(e)
         }), 500
 
+@app.before_request
+def before_request_metrics():
+    """Request開始時のメトリクス収集"""
+    request.start_time = time.time()
+
+@app.after_request
+def after_request_metrics(response):
+    """Request終了時のメトリクス収集"""
+    duration = time.time() - request.start_time
+    
+    # HTTP リクエスト総数（pathとstatus別）
+    path = request.path
+    status = response.status_code
+    _metrics['http_requests_total'][path][status] += 1
+    
+    # リクエスト継続時間
+    _metrics['http_request_duration_seconds'].append({
+        'path': path,
+        'method': request.method,
+        'duration': duration,
+        'status': status,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+    
+    # 最新100件のみ保持
+    if len(_metrics['http_request_duration_seconds']) > 100:
+        _metrics['http_request_duration_seconds'] = _metrics['http_request_duration_seconds'][-100:]
+    
+    return response
+
 @app.route('/metrics')
 def metrics():
-    """メトリクスエンドポイント（簡易版）"""
+    """Prometheus形式のメトリクスエンドポイント"""
     logger.debug("Metrics requested")
-    # 実際には Prometheus 形式のメトリクスを返す
-    return jsonify({
-        'requests': {
-            'total': 0,  # 実際にはカウンターを実装
-        }
-    }), 200
+    
+    output = []
+    
+    # HTTP リクエスト総数（Prometheus形式）
+    for path, status_counts in _metrics['http_requests_total'].items():
+        for status, count in status_counts.items():
+            output.append(
+                f'http_requests_total{{path="{path}",status="{status}",service="{APP_NAME}"}} {count}'
+            )
+    
+    # リクエスト継続時間（ヒストグラム形式の簡易版）
+    if _metrics['http_request_duration_seconds']:
+        durations = [d['duration'] for d in _metrics['http_request_duration_seconds']]
+        
+        # バケット（秒）: 0.1, 0.5, 1.0, 2.0, 5.0, +Inf
+        buckets = [0.1, 0.5, 1.0, 2.0, 5.0, float('inf')]
+        bucket_counts = [0] * len(buckets)
+        
+        for duration in durations:
+            for i, bucket in enumerate(buckets):
+                if duration <= bucket:
+                    bucket_counts[i] += 1
+                    break
+        
+        for i, (bucket, count) in enumerate(zip(buckets, bucket_counts)):
+            le = bucket if bucket != float('inf') else '+Inf'
+            output.append(
+                f'http_request_duration_seconds_bucket{{le="{le}",service="{APP_NAME}"}} {count}'
+            )
+        
+        # Summary統計
+        avg_duration = sum(durations) / len(durations) if durations else 0
+        output.append(f'http_request_duration_seconds_avg{{service="{APP_NAME}"}} {avg_duration}')
+        output.append(f'http_request_duration_seconds_count{{service="{APP_NAME}"}} {len(durations)}')
+    
+    # データベース接続エラー
+    output.append(
+        f'app_database_connection_errors_total{{service="{APP_NAME}"}} {_metrics["app_database_connection_errors_total"]}'
+    )
+    
+    # Redis接続エラー
+    output.append(
+        f'app_redis_connection_errors_total{{service="{APP_NAME}"}} {_metrics["app_redis_connection_errors_total"]}'
+    )
+    
+    return '\n'.join(output) + '\n', 200, {'Content-Type': 'text/plain; version=0.0.4'}
 
 @app.route('/db/status')
 def db_status():
