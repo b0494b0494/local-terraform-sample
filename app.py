@@ -387,7 +387,7 @@ def after_request_metrics(response):
 
 @app.route('/metrics')
 def metrics():
-    """Prometheus形式のメトリクスエンドポイント"""
+    """Prometheus format metrics endpoint"""
     logger.debug("Metrics requested")
     
     output = []
