@@ -3,13 +3,13 @@
 Database Utilities Module
 Handles database connection pool and context manager
 """
-import os
 import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 import logging
 import time
 import metrics
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +21,17 @@ def initialize_db_pool():
     """Initialize database connection pool"""
     global db_pool
     
+    # Use config module for database settings
+    if not config.Config.is_database_configured():
+        logger.info("Database credentials not set. Continuing without database.")
+        return None
+    
     try:
-        db_host = os.getenv('DATABASE_HOST')
-        db_port = os.getenv('DATABASE_PORT', '5432')
-        db_name = os.getenv('DATABASE_NAME')
-        db_user = os.getenv('DATABASE_USER')
-        db_password = os.getenv('DATABASE_PASSWORD')
+        db_host = config.Config.DATABASE_HOST
+        db_port = config.Config.DATABASE_PORT
+        db_name = config.Config.DATABASE_NAME
+        db_user = config.Config.DATABASE_USER
+        db_password = config.Config.DATABASE_PASSWORD
         
         if db_host and db_name and db_user and db_password:
             db_pool = psycopg2.pool.ThreadedConnectionPool(
@@ -34,18 +39,15 @@ def initialize_db_pool():
                 maxconn=5,
                 host=db_host,
                 port=db_port,
-                database=db_name,
-                user=db_user,
-                password=db_password
-            )
-            # Test connection
-            test_conn = db_pool.getconn()
-            db_pool.putconn(test_conn)
-            logger.info(f"Database connected to {db_host}:{db_port}/{db_name}")
-            return db_pool
-        else:
-            logger.info("Database credentials not set. Continuing without database.")
-            return None
+            database=db_name,
+            user=db_user,
+            password=db_password
+        )
+        # Test connection
+        test_conn = db_pool.getconn()
+        db_pool.putconn(test_conn)
+        logger.info(f"Database connected to {db_host}:{db_port}/{db_name}")
+        return db_pool
     except Exception as e:
         logger.warning(f"Database connection failed: {e}. Continuing without database.")
         return None

@@ -15,12 +15,13 @@ import auth
 import metrics
 import db_utils
 import cache_utils
+import config
 import time
 from collections import defaultdict
 
-# Logging Configuration
+# Logging Configuration (from config module)
 logging.basicConfig(
-    level=os.getenv('LOG_LEVEL', 'INFO').upper(),
+    level=config.Config.LOG_LEVEL,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -419,12 +420,8 @@ def api_key_test():
     }), 200
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 8080))
-    # Default to False for security (set DEBUG=True explicitly for development)
-    debug_mode = os.getenv('DEBUG', 'False').lower() == 'true'
-    
-    if debug_mode and ENVIRONMENT != 'local':
-        logger.warning(f"DEBUG mode enabled in {ENVIRONMENT} environment - this should only be used in development!")
+    port = config.Config.PORT
+    debug_mode = config.Config.DEBUG
     
     logger.info(f"Starting {APP_NAME} v{APP_VERSION} on port {port} (environment: {ENVIRONMENT}, debug={debug_mode})")
     app.run(host='0.0.0.0', port=port, debug=debug_mode)

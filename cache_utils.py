@@ -3,18 +3,18 @@
 Cache Utilities Module
 Handles Redis connection and caching functionality
 """
-import os
 import redis
 from functools import wraps
 from flask import request, jsonify
 import logging
+import config
 
 logger = logging.getLogger(__name__)
 
-# Redis Connection Configuration
-REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
-REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
-REDIS_TTL = int(os.getenv('REDIS_TTL', 300))  # Default 5 minutes
+# Redis Connection Configuration (from config module)
+REDIS_HOST = config.Config.REDIS_HOST
+REDIS_PORT = config.Config.REDIS_PORT
+REDIS_TTL = config.Config.REDIS_TTL
 
 # Redis Client Initialization
 redis_client = None
