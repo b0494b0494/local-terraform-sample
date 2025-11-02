@@ -32,3 +32,13 @@ output "ingress_enabled" {
   description = "Whether Ingress is enabled"
   value       = var.enable_ingress
 }
+
+output "hpa_enabled" {
+  description = "Whether HPA is enabled"
+  value       = var.enable_hpa
+}
+
+output "hpa_name" {
+  description = "HPA name (if enabled)"
+  value       = var.enable_hpa ? kubernetes_horizontal_pod_autoscaler.sample_app[0].metadata[0].name : null
+}

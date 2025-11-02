@@ -66,3 +66,28 @@ variable "ingress_host" {
   type        = string
   default     = "sample-app.local"
 }
+
+# HPA Variables
+variable "enable_hpa" {
+  description = "Enable Horizontal Pod Autoscaler"
+  type        = bool
+  default     = true
+}
+
+variable "hpa_min_replicas" {
+  description = "Minimum number of replicas for HPA"
+  type        = number
+  default     = 2
+}
+
+variable "hpa_max_replicas" {
+  description = "Maximum number of replicas for HPA"
+  type        = number
+  default     = 10
+}
+
+variable "hpa_target_cpu" {
+  description = "Target CPU utilization percentage for HPA"
+  type        = number
+  default     = 70
+}

@@ -21,3 +21,9 @@ log_level = "INFO"
 # Ingress (optional)
 enable_ingress = false
 ingress_host   = "sample-app.local"
+
+# HPA (Horizontal Pod Autoscaler)
+enable_hpa       = true
+hpa_min_replicas = 2
+hpa_max_replicas = 10
+hpa_target_cpu   = 70
