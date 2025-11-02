@@ -39,16 +39,28 @@ _MAX_SLOW_OPS = 50
 _MAX_ERROR_OPS = 50
 
 
-def generate_trace_ids():
-    """Generate trace and span IDs for distributed tracing"""
+def generate_trace_ids() -> Dict[str, str]:
+    """Generate trace and span IDs for distributed tracing
+    
+    Returns:
+        Dict[str, str]: Dictionary with 'trace_id' and 'span_id'
+    """
     return {
         'trace_id': uuid.uuid4().hex[:16],  # 16-char trace ID
         'span_id': uuid.uuid4().hex[:8]     # 8-char span ID
     }
 
 
-def record_http_request(path, method, status, duration, user=None):
-    """Record HTTP request metrics"""
+def record_http_request(path: str, method: str, status: int, duration: float, user: Optional[str] = None) -> None:
+    """Record HTTP request metrics
+    
+    Args:
+        path: Request path
+        method: HTTP method
+        status: HTTP status code
+        duration: Request duration in seconds
+        user: Optional user identifier
+    """
     # HTTP requests total (by path and status)
     _metrics['http_requests_total'][path][status] += 1
     
@@ -66,18 +78,7 @@ def record_http_request(path, method, status, duration, user=None):
         _metrics['http_request_duration_seconds'] = _metrics['http_request_duration_seconds'][-100:]
 
 
-def create_trace_span(
-    trace_id: str,
-    span_id: str,
-    operation_name: str,
-    duration_ms: float,
-    status_code: int,
-    method: str,
-    path: str,
-    user_agent: Optional[str],
-    service_name: str = 'sample-app',
-    user: Optional[str] = None
-) -> Dict[str, Any]:
+def create_trace_span(trace_id, span_id, operation_name, duration_ms, status_code, method, path, user_agent, service_name='sample-app', user=None):
     """Create a trace span"""
     span = {
         'trace_id': trace_id,
@@ -109,8 +110,20 @@ def create_trace_span(
     return span
 
 
-def record_apm_operation(operation, duration_ms, success=True, error=None):
-    """Record APM metrics for an operation"""
+def record_apm_operation(
+    operation: str,
+    duration_ms: float,
+    success: bool = True,
+    error: Optional[str] = None
+) -> None:
+    """Record APM metrics for an operation
+    
+    Args:
+        operation: Operation name
+        duration_ms: Duration in milliseconds
+        success: Whether the operation succeeded
+        error: Optional error message
+    """
     stats = _apm_data['operation_stats'][operation]
     
     stats['count'] += 1
@@ -143,17 +156,17 @@ def record_apm_operation(operation, duration_ms, success=True, error=None):
             _apm_data['slow_operations'] = _apm_data['slow_operations'][-_MAX_SLOW_OPS:]
 
 
-def increment_database_errors() -> None:
+def increment_database_errors():
     """Increment database connection error counter"""
     _metrics['app_database_connection_errors_total'] += 1
 
 
-def increment_redis_errors() -> None:
+def increment_redis_errors():
     """Increment Redis connection error counter"""
     _metrics['app_redis_connection_errors_total'] += 1
 
 
-def get_prometheus_metrics(app_name: str) -> str:
+def get_prometheus_metrics(app_name):
     """Format metrics in Prometheus text format"""
     output = []
     
@@ -215,8 +228,12 @@ def get_traces(limit=None, trace_id=None):
     return list(reversed(traces))  # Most recent first
 
 
-def get_apm_stats():
-    """Get APM performance statistics"""
+def get_apm_stats() -> Dict[str, Any]:
+    """Get APM performance statistics
+    
+    Returns:
+        Dict[str, Any]: APM statistics dictionary
+    """
     # Calculate averages
     stats_summary = {}
     for operation, stats in _apm_data['operation_stats'].items():
