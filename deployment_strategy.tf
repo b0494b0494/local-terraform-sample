@@ -1,28 +1,6 @@
 # Blue-Green Deployment Strategy
 # Enables zero-downtime deployments with blue/green environments
-
-variable "enable_blue_green" {
-  description = "Enable blue-green deployment strategy"
-  type        = bool
-  default     = false
-}
-
-variable "active_environment" {
-  description = "Active environment: 'blue' or 'green'"
-  type        = string
-  default     = "blue"
-
-  validation {
-    condition     = contains(["blue", "green"], var.active_environment)
-    error_message = "active_environment must be 'blue' or 'green'"
-  }
-}
-
-variable "app_image_tag" {
-  description = "Container image tag for deployment"
-  type        = string
-  default     = "latest"
-}
+# Variables are defined in variables.tf
 
 # Blue environment deployment
 module "blue_deployment" {
