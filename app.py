@@ -30,24 +30,24 @@ APP_NAME = config.Config.APP_NAME
 APP_VERSION = config.Config.APP_VERSION
 ENVIRONMENT = config.Config.ENVIRONMENT
 
-# Metrics module imported - see metrics.py
+# Metrics module imported - see app.metrics
 
-# Redis client initialized via cache_utils module
-redis_client = cache_utils.redis_client
+# Redis client initialized via cache module
+redis_client = cache.redis_client
 
-# Database connection pool initialized via db_utils module
-db_pool = db_utils.initialize_db_pool()
-if db_utils.db_pool:
+# Database connection pool initialized via database module
+db_pool = database.initialize_db_pool()
+if database.db_pool:
     # Share database pool with auth module
-    auth.set_db_pool(db_utils.db_pool)
+    auth.set_db_pool(database.db_pool)
 
 # Import database utilities
-get_db_connection = db_utils.get_db_connection
-return_db_connection = db_utils.return_db_connection
-DatabaseConnection = db_utils.DatabaseConnection
+get_db_connection = database.get_db_connection
+return_db_connection = database.return_db_connection
+DatabaseConnection = database.DatabaseConnection
 
-# Cache decorator imported from cache_utils module
-cache_response = cache_utils.cache_response
+# Cache decorator imported from cache module
+cache_response = cache.cache_response
 
 @app.route('/')
 @cache_response(ttl=60)  # Cache for 1 minute
@@ -79,7 +79,7 @@ def health():
 def ready():
     """Readiness check endpoint"""
     # Check database connection if configured
-    if db_utils.db_pool:
+    if database.db_pool:
         conn = get_db_connection()
         if conn:
             try:
