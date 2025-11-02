@@ -353,7 +353,7 @@ def login() -> Tuple[Response, int]:
 
 @app.route('/auth/validate', methods=['GET', 'POST'])
 @auth.require_auth(jwt_required=True, api_key_required=False)
-def validate_token():
+def validate_token() -> Tuple[Response, int]:
     """Validate current authentication token"""
     return jsonify({
         'status': 'valid',
@@ -364,7 +364,7 @@ def validate_token():
 
 @app.route('/auth/api-keys', methods=['GET'])
 @auth.require_auth(jwt_required=True, roles=['admin'])
-def list_api_keys():
+def list_api_keys() -> Tuple[Response, int]:
     """List all API keys (admin only)"""
     keys = []
     for api_key, data in auth.API_KEYS.items():
@@ -385,7 +385,7 @@ def list_api_keys():
 @app.route('/protected', methods=['GET'])
 @auth.require_auth(jwt_required=True)
 @auth.rate_limit(max_requests=30, window_seconds=60)
-def protected_endpoint():
+def protected_endpoint() -> Tuple[Response, int]:
     """Example protected endpoint requiring JWT authentication"""
     return jsonify({
         'message': 'This is a protected endpoint',
@@ -396,7 +396,7 @@ def protected_endpoint():
 
 @app.route('/admin', methods=['GET'])
 @auth.require_auth(jwt_required=True, roles=['admin'])
-def admin_endpoint():
+def admin_endpoint() -> Tuple[Response, int]:
     """Example admin-only endpoint"""
     return jsonify({
         'message': 'This is an admin-only endpoint',
