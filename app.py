@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-シンプルなサンプルアプリケーション
-ローカルで動作する簡単なHTTPサーバー
+Sample Application for Terraform and Kubernetes Practice
+A simple HTTP server for local practice with observability, authentication, and caching features
 """
 from flask import Flask, jsonify, request, g
 import os
@@ -18,7 +18,7 @@ import time
 import uuid
 from collections import defaultdict
 
-# ロギング設定
+# Logging Configuration
 logging.basicConfig(
     level=os.getenv('LOG_LEVEL', 'INFO').upper(),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# ConfigMapから読み込む設定値（環境変数として設定される）
+# Configuration from ConfigMap (set as environment variables)
 APP_NAME = os.getenv('APP_NAME', 'sample-app')
 APP_VERSION = os.getenv('APP_VERSION', '1.0.0')
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')
@@ -83,7 +83,7 @@ except (redis.ConnectionError, redis.TimeoutError) as e:
     logger.warning(f"Redis connection failed: {e}. Continuing without cache.")
     redis_client = None
 
-# Database connection pool
+# Database Connection Pool
 db_pool = None
 try:
     db_host = os.getenv('DATABASE_HOST')
@@ -147,18 +147,18 @@ def return_db_connection(conn):
             _record_apm_operation(operation, duration_ms, success=False, error=str(e))
 
 def cache_response(ttl=REDIS_TTL):
-    """レスポンスをキャッシュするデコレータ"""
+    """Decorator to cache Flask route responses"""
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if redis_client is None:
-                # Redisが利用できない場合は通常通り実行
+                # If Redis is not available, execute normally
                 return f(*args, **kwargs)
             
-            # キャッシュキー生成（パスとパラメータから）
+            # Generate cache key from path and parameters
             cache_key = f"cache:{request.path}:{str(sorted(request.args.items()))}"
             
-            # キャッシュから取得を試みる
+            # Try to get from cache
             try:
                 start_time = time.time()
                 cached = redis_client.get(cache_key)
@@ -173,11 +173,11 @@ def cache_response(ttl=REDIS_TTL):
                 logger.warning(f"Cache read error: {e}")
                 _record_apm_operation("cache.get", duration_ms, success=False, error=str(e))
             
-            # キャッシュがない場合は通常実行
+            # Cache miss - execute normally
             logger.debug(f"Cache MISS: {cache_key}")
             response = f(*args, **kwargs)
             
-            # レスポンスをキャッシュ（JSONレスポンスのみ）
+            # Cache response (JSON responses only)
             try:
                 if isinstance(response, tuple) and len(response) == 2:
                     data, status = response
@@ -203,7 +203,7 @@ def cache_response(ttl=REDIS_TTL):
     return decorator
 
 @app.route('/')
-@cache_response(ttl=60)  # 1分間キャッシュ
+@cache_response(ttl=60)  # Cache for 1 minute
 @auth.rate_limit(max_requests=100, window_seconds=60)
 def hello():
     logger.info(f"GET / - Request from {request.remote_addr}")
@@ -257,9 +257,9 @@ def ready():
     }), 200
 
 @app.route('/info')
-@cache_response(ttl=300)  # 5分間キャッシュ
+@cache_response(ttl=300)  # Cache for 5 minutes
 def info():
-    """アプリケーション情報を返す"""
+    """Return application information"""
     logger.info("Info endpoint requested")
     return jsonify({
         'app_name': APP_NAME,
@@ -272,7 +272,7 @@ def info():
 
 @app.route('/cache/stats')
 def cache_stats():
-    """キャッシュ統計情報を返す"""
+    """Return cache statistics"""
     if redis_client is None:
         return jsonify({
             'status': 'redis_not_available',
@@ -309,7 +309,7 @@ def cache_clear():
         }), 503
     
     try:
-        # キャッシュキーをすべて削除（パターンマッチ）
+            # Delete all cache keys (pattern match)
         keys = redis_client.keys('cache:*')
         if keys:
             redis_client.delete(*keys)
@@ -523,7 +523,7 @@ def _record_apm_operation(operation, duration_ms, success=True, error=None):
 
 @app.route('/db/status')
 def db_status():
-    """データベース接続ステータス"""
+    """Database connection status"""
     if db_pool is None:
         return jsonify({
             'status': 'not_configured',
