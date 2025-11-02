@@ -410,6 +410,117 @@ resource "kubernetes_deployment" "sample_app" {
               memory = var.memory_limit
             }
           }
+
+          # Mount shared log volume
+          dynamic "volume_mount" {
+            for_each = var.enable_sidecar_log_shipper ? [1] : []
+            content {
+              name       = "shared-logs"
+              mount_path = "/app/logs"
+            }
+          }
+        }
+
+        # Sidecar Container: Log Shipper
+        # Reads logs from shared volume and processes them
+        dynamic "container" {
+          for_each = var.enable_sidecar_log_shipper ? [1] : []
+          content {
+            name  = "log-shipper"
+            image = "busybox:1.36"
+
+            command = [
+              "sh",
+              "-c",
+              <<-EOT
+                echo "Log shipper sidecar started..."
+                echo "Monitoring log files in /shared/logs..."
+                
+                # Simulate log shipping
+                while true; do
+                  if [ -f /shared/logs/app.log ]; then
+                    echo "[$(date +%Y-%m-%d\ %H:%M:%S)] Processing logs..."
+                    # In production, this would ship to Loki, ELK, etc.
+                    tail -n 10 /shared/logs/app.log 2>/dev/null || echo "No logs yet..."
+                    sleep 30
+                  else
+                    echo "Waiting for log file..."
+                    sleep 5
+                  fi
+                done
+              EOT
+            ]
+
+            resources {
+              requests = {
+                cpu    = "50m"
+                memory = "64Mi"
+              }
+              limits = {
+                cpu    = "200m"
+                memory = "128Mi"
+              }
+            }
+
+            volume_mount {
+              name       = "shared-logs"
+              mount_path = "/shared/logs"
+            }
+          }
+        }
+
+        # Sidecar Container: Metrics Exporter
+        # Exports additional metrics from the application
+        dynamic "container" {
+          for_each = var.enable_sidecar_metrics ? [1] : []
+          content {
+            name  = "metrics-exporter"
+            image = "busybox:1.36"
+
+            command = [
+              "sh",
+              "-c",
+              <<-EOT
+                echo "Metrics exporter sidecar started..."
+                echo "Collecting metrics from shared volume..."
+                
+                # Simulate metrics export
+                while true; do
+                  echo "[$(date +%Y-%m-%d\ %H:%M:%S)] Metrics collection cycle"
+                  # In production, this would export to Prometheus, etc.
+                  sleep 60
+                done
+              EOT
+            ]
+
+            resources {
+              requests = {
+                cpu    = "50m"
+                memory = "64Mi"
+              }
+              limits = {
+                cpu    = "200m"
+                memory = "128Mi"
+              }
+            }
+
+            volume_mount {
+              name       = "shared-logs"
+              mount_path = "/shared/metrics"
+            }
+          }
+        }
+
+        # Shared volumes for sidecar containers
+        dynamic "volume" {
+          for_each = var.enable_sidecar_log_shipper || var.enable_sidecar_metrics ? [1] : []
+          content {
+            name = "shared-logs"
+            empty_dir {
+              medium = "Memory"
+              size_limit = "100Mi"
+            }
+          }
         }
       }
     }
