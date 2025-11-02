@@ -7,13 +7,14 @@ from flask import Flask, jsonify, request, g
 import os
 import logging
 from datetime import datetime
-import redis
+# Redis imports moved to cache_utils module
 import json
 from functools import wraps
 from psycopg2.extras import RealDictCursor  # For dict cursor
 import auth
 import metrics
 import db_utils
+import cache_utils
 import time
 from collections import defaultdict
 
@@ -33,28 +34,8 @@ ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')
 
 # Metrics module imported - see metrics.py
 
-# Redis Connection Configuration
-REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
-REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
-REDIS_TTL = int(os.getenv('REDIS_TTL', 300))  # Default 5 minutes
-
-# Redis Client Initialization
-redis_client = None
-try:
-    redis_client = redis.Redis(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        db=0,
-        decode_responses=True,
-        socket_connect_timeout=2,
-        socket_timeout=2
-    )
-    # Test connection
-    redis_client.ping()
-    logger.info(f"Redis connected to {REDIS_HOST}:{REDIS_PORT}")
-except (redis.ConnectionError, redis.TimeoutError) as e:
-    logger.warning(f"Redis connection failed: {e}. Continuing without cache.")
-    redis_client = None
+# Redis client initialized via cache_utils module
+redis_client = cache_utils.redis_client
 
 # Database connection pool initialized via db_utils module
 db_pool = db_utils.initialize_db_pool()
