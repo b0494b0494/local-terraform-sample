@@ -76,6 +76,9 @@ resource "kubernetes_deployment" "sample_app" {
       }
 
       spec {
+        # ServiceAccount for RBAC
+        service_account_name = kubernetes_service_account.app_sa.metadata[0].name
+
         # Persistent Volume Claim for storage (if enabled)
         dynamic "volume" {
           for_each = var.enable_persistent_storage ? [1] : []

@@ -52,3 +52,13 @@ output "pvc_name" {
   description = "PVC name (if storage enabled)"
   value       = var.enable_persistent_storage ? kubernetes_persistent_volume_claim.app_storage[0].metadata[0].name : null
 }
+
+output "service_account_name" {
+  description = "ServiceAccount name"
+  value       = kubernetes_service_account.app_sa.metadata[0].name
+}
+
+output "role_name" {
+  description = "Role name"
+  value       = kubernetes_role.app_role.metadata[0].name
+}
