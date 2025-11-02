@@ -97,3 +97,13 @@ output "loki_service" {
   description = "Loki service name (if enabled)"
   value       = var.enable_loki ? kubernetes_service.loki[0].metadata[0].name : null
 }
+
+output "network_policies_enabled" {
+  description = "Whether Network Policies are enabled"
+  value       = var.enable_network_policies
+}
+
+output "redis_enabled" {
+  description = "Whether Redis cache is enabled"
+  value       = var.enable_redis
+}

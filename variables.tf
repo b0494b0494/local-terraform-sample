@@ -142,3 +142,10 @@ variable "redis_storage_size" {
   type        = string
   default     = "1Gi"
 }
+
+# Network Policy Variables
+variable "enable_network_policies" {
+  description = "Enable Network Policies for pod-to-pod communication control"
+  type        = bool
+  default     = false  # Note: Requires CNI plugin that supports Network Policies (e.g., Calico, Cilium)
+}
