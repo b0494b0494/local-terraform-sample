@@ -106,7 +106,7 @@ def ready() -> Tuple[Response, int]:
 
 @app.route('/info')
 @cache_response(ttl=300)  # Cache for 5 minutes
-def info():
+def info() -> Tuple[Response, int]:
     """Return application information"""
     logger.info("Info endpoint requested")
     info_data = config.Config.get_summary()
@@ -219,7 +219,7 @@ def metrics_endpoint() -> Response:
     return output, 200, {'Content-Type': 'text/plain; version=0.0.4'}
 
 @app.route('/traces', methods=['GET'])
-def get_traces():
+def get_traces() -> Tuple[Response, int]:
     """Distributed traces endpoint (simplified)"""
     limit = request.args.get('limit', 50, type=int)
     trace_id = request.args.get('trace_id', None)
@@ -232,7 +232,7 @@ def get_traces():
     }), 200
 
 @app.route('/apm/stats', methods=['GET'])
-def apm_stats():
+def apm_stats() -> Tuple[Response, int]:
     """APM performance statistics endpoint"""
     stats = metrics.get_apm_stats()
     return jsonify(stats), 200
@@ -316,7 +316,7 @@ def db_query() -> Tuple[Response, int]:
 
 # Authentication Endpoints
 @app.route('/auth/login', methods=['POST'])
-def login():
+def login() -> Tuple[Response, int]:
     """Login endpoint - returns JWT token"""
     try:
         data = request.json or {}
@@ -407,7 +407,7 @@ def admin_endpoint():
 
 @app.route('/api-key-test', methods=['GET'])
 @auth.require_auth(api_key_required=True)
-def api_key_test():
+def api_key_test() -> Tuple[Response, int]:
     """Example endpoint using API key authentication"""
     return jsonify({
         'message': 'This endpoint uses API key authentication',
