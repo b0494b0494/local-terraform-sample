@@ -74,15 +74,28 @@ By completing this path, you will:
 
 ### Week 4: Advanced & CI/CD
 
-**Day 1- 3: CI/CD**
+**Day 1-2: Advanced Observability**
+- [ ] Enable Prometheus alerting rules
+- [ ] Explore distributed tracing (`/traces`)
+- [ ] Check APM performance stats (`/apm/stats`)
+- [ ] Review alert configuration
+
+**Day 3: Deployment Strategies**
+- [ ] Understand blue-green deployment
+- [ ] Practice switching environments
+- [ ] Learn rollback procedures
+- [ ] Read [BLUE_GREEN_GUIDE.md](./BLUE_GREEN_GUIDE.md)
+
+**Day 4: CI/CD & Helm**
 - [ ] Understand GitHub Actions workflows
-- [ ] Practice CI workflow
-- [ ] Configure CD (if cluster available)
+- [ ] Practice Advanced CI pipeline
+- [ ] Learn Helm chart usage
 - [ ] Read [CICD_GUIDE.md](./CICD_GUIDE.md)
 
-**Day 4-5: Real-World Scenarios**
+**Day 5: Real-World Scenarios**
 - [ ] Deploy full stack (app + monitoring)
-- [ ] Load testing and scaling
+- [ ] Use Helm for deployment
+- [ ] Practice blue-green deployment
 - [ ] Troubleshooting practice
 - [ ] Review [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
 
@@ -126,6 +139,10 @@ By completing this path, you will:
 **Operations**:
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - Debugging
 - [CICD_GUIDE.md](./CICD_GUIDE.md) - Automation
+- [BLUE_GREEN_GUIDE.md](./BLUE_GREEN_GUIDE.md) - Deployment strategies
+
+**Package Management**:
+- [helm/sample-app/README.md](../helm/sample-app/README.md) - Helm chart usage
 
 ## ?? Practice Scenarios
 
@@ -186,6 +203,11 @@ By completing this path, you will:
 - [ ] Can query Prometheus metrics
 - [ ] Can use LogQL for log queries
 - [ ] Understand CI/CD workflows
+- [ ] Can use distributed tracing
+- [ ] Can analyze APM performance data
+- [ ] Can perform blue-green deployments
+- [ ] Can use Helm charts
+- [ ] Understand security scanning in CI/CD
 
 ## ?? Next Steps After This Project
 
