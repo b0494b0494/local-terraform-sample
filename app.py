@@ -392,7 +392,7 @@ def metrics():
     
     output = []
     
-    # HTTP リクエスト総数（Prometheus形式）
+    # HTTP requests total (Prometheus format)
     for path, status_counts in _metrics['http_requests_total'].items():
         for status, count in status_counts.items():
             output.append(
