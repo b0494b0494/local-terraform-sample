@@ -122,55 +122,29 @@ def info():
 @app.route('/cache/stats')
 def cache_stats():
     """Return cache statistics"""
-    if redis_client is None:
-        return jsonify({
-            'status': 'redis_not_available',
-            'message': 'Redis is not connected'
-        }), 503
-    
-    try:
-        info = redis_client.info('stats')
-        return jsonify({
-            'status': 'connected',
-            'keyspace_hits': info.get('keyspace_hits', 0),
-            'keyspace_misses': info.get('keyspace_misses', 0),
-            'total_keys': redis_client.dbsize(),
-            'hit_rate': round(
-                info.get('keyspace_hits', 0) / 
-                max(info.get('keyspace_hits', 0) + info.get('keyspace_misses', 0), 1) * 100,
-                2
-            ) if (info.get('keyspace_hits', 0) + info.get('keyspace_misses', 0)) > 0 else 0
-        }), 200
-    except Exception as e:
-        logger.error(f"Failed to get cache stats: {e}")
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
+    stats = cache_utils.get_cache_stats()
+    status_code = 200 if stats.get('status') != 'error' else 500
+    return jsonify(stats), status_code
 
 @app.route('/cache/clear', methods=['POST'])
 def cache_clear():
-    """?????????"""
-    if redis_client is None:
-        return jsonify({
-            'status': 'redis_not_available',
-            'message': 'Redis is not connected'
-        }), 503
-    
-    try:
-            # Delete all cache keys (pattern match)
-        keys = redis_client.keys('cache:*')
-        if keys:
-            redis_client.delete(*keys)
-        return jsonify({
-            'status': 'cleared',
-            'keys_deleted': len(keys)
-        }), 200
-    except Exception as e:
-        logger.error(f"Failed to clear cache: {e}")
+    """Clear cache endpoint"""
+    if cache_utils.redis_client is None:
         return jsonify({
             'status': 'error',
-            'message': str(e)
+            'message': 'Redis not configured'
+        }), 503
+    
+    success = cache_utils.clear_cache()
+    if success:
+        return jsonify({
+            'status': 'success',
+            'message': 'Cache cleared'
+        }), 200
+    else:
+        return jsonify({
+            'status': 'error',
+            'message': 'Failed to clear cache'
         }), 500
 
 # Global Error Handlers
