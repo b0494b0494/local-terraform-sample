@@ -109,6 +109,77 @@ resource "kubernetes_deployment" "sample_app" {
         }
 
         dynamic "init_container" {
+          for_each = var.enable_database ? [1] : []
+          content {
+            name  = "wait-for-database"
+            image = "busybox:1.36"
+
+            command = [
+              "sh",
+              "-c",
+              <<-EOT
+                echo "Waiting for PostgreSQL to be ready..."
+                until nc -z ${var.app_name}-postgresql 5432; do
+                  echo "Database not ready, waiting..."
+                  sleep 2
+                done
+                echo "Database is ready!"
+              EOT
+            ]
+          }
+        }
+
+        dynamic "init_container" {
+          for_each = var.enable_database ? [1] : []
+          content {
+            name  = "migrate-database"
+            image = "sample-app:latest"
+
+            command = ["python", "migration.py"]
+
+            env {
+              name = "DATABASE_HOST"
+              value = "${var.app_name}-postgresql"
+            }
+
+            env {
+              name = "DATABASE_PORT"
+              value = "5432"
+            }
+
+            env {
+              name = "DATABASE_NAME"
+              value_from {
+                secret_key_ref {
+                  name = kubernetes_secret.database_credentials[0].metadata[0].name
+                  key  = "database"
+                }
+              }
+            }
+
+            env {
+              name = "DATABASE_USER"
+              value_from {
+                secret_key_ref {
+                  name = kubernetes_secret.database_credentials[0].metadata[0].name
+                  key  = "username"
+                }
+              }
+            }
+
+            env {
+              name = "DATABASE_PASSWORD"
+              value_from {
+                secret_key_ref {
+                  name = kubernetes_secret.database_credentials[0].metadata[0].name
+                  key  = "password"
+                }
+              }
+            }
+          }
+        }
+
+        dynamic "init_container" {
           for_each = [1]  # Always run config validation
           content {
             name  = "validate-config"
@@ -149,6 +220,13 @@ resource "kubernetes_deployment" "sample_app" {
             }
           }
         }
+
+        # Init containers run in order:
+        # 1. wait-for-redis (if Redis enabled)
+        # 2. wait-for-database (if Database enabled)
+        # 3. validate-config (always)
+        # 4. migrate-database (if Database enabled)
+        # 5. Main container starts
 
         # Persistent Volume Claim for storage (if enabled)
         dynamic "volume" {
