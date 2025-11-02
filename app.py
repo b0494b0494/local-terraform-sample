@@ -60,12 +60,12 @@ _apm_data = {
 _MAX_SLOW_OPS = 50
 _MAX_ERROR_OPS = 50
 
-# Redis接続設定
+# Redis Connection Configuration
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
-REDIS_TTL = int(os.getenv('REDIS_TTL', 300))  # デフォルト5分
+REDIS_TTL = int(os.getenv('REDIS_TTL', 300))  # Default 5 minutes
 
-# Redisクライアント初期化
+# Redis Client Initialization
 redis_client = None
 try:
     redis_client = redis.Redis(
@@ -76,7 +76,7 @@ try:
         socket_connect_timeout=2,
         socket_timeout=2
     )
-    # 接続テスト
+    # Test connection
     redis_client.ping()
     logger.info(f"Redis connected to {REDIS_HOST}:{REDIS_PORT}")
 except (redis.ConnectionError, redis.TimeoutError) as e:
@@ -145,6 +145,20 @@ def return_db_connection(conn):
             duration_ms = (time.time() - start_time) * 1000
             logger.error(f"Failed to return database connection: {e}")
             _record_apm_operation(operation, duration_ms, success=False, error=str(e))
+
+class DatabaseConnection:
+    """Context manager for database connections"""
+    def __init__(self):
+        self.conn = None
+    
+    def __enter__(self):
+        self.conn = get_db_connection()
+        return self.conn
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.conn:
+            return_db_connection(self.conn)
+        return False
 
 def cache_response(ttl=REDIS_TTL):
     """Decorator to cache Flask route responses"""
@@ -323,6 +337,35 @@ def cache_clear():
             'status': 'error',
             'message': str(e)
         }), 500
+
+# Global Error Handlers
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 errors"""
+    return jsonify({
+        'status': 'error',
+        'message': 'Resource not found',
+        'path': request.path
+    }), 404
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    """Handle 405 errors"""
+    return jsonify({
+        'status': 'error',
+        'message': 'Method not allowed',
+        'method': request.method,
+        'path': request.path
+    }), 405
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 errors"""
+    logger.error(f"Internal server error: {error}", exc_info=True)
+    return jsonify({
+        'status': 'error',
+        'message': 'Internal server error'
+    }), 500
 
 @app.before_request
 def before_request_metrics():
