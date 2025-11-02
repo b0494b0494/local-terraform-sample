@@ -7,7 +7,7 @@ from flask import Flask, jsonify, request, g
 import os
 import logging
 from datetime import datetime
-# Redis imports moved to cache_utils module
+# Redis functionality moved to app.cache module
 import json
 from functools import wraps
 from psycopg2.extras import RealDictCursor  # For dict cursor
