@@ -34,7 +34,7 @@ def register_api_key(user, roles=None):
     API_KEYS[api_key] = {
         'user': user,
         'roles': roles or ['user'],
-        'created_at': datetime.utcnow().isoformat()
+        'created_at': datetime.utcnow().isoformat()  # Already ISO string
     }
     logger.info(f"API key registered for user: {user}")
     return api_key
@@ -57,11 +57,13 @@ def create_jwt_token(user, roles=None):
     """Create a JWT token (simplified implementation)"""
     # In production, use PyJWT library
     # This is a simplified demo version
+    now = datetime.utcnow()
+    exp_time = now + timedelta(hours=JWT_EXPIRATION_HOURS)
     payload = {
         'user': user,
         'roles': roles or ['user'],
-        'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS),
-        'iat': datetime.utcnow()
+        'exp': exp_time.isoformat(),  # Convert to ISO string
+        'iat': now.isoformat()
     }
     
     # Simple token encoding (not secure, for demo only)
@@ -106,7 +108,8 @@ def verify_jwt_token(token):
         payload = json.loads(payload_json)
         
         # Check expiration
-        exp = datetime.fromisoformat(payload['exp'])
+        exp_str = payload['exp']
+        exp = datetime.fromisoformat(exp_str.replace('Z', '+00:00')) if isinstance(exp_str, str) else datetime.fromtimestamp(exp_str)
         if datetime.utcnow() > exp:
             return None
         
