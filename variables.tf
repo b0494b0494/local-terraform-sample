@@ -149,3 +149,22 @@ variable "enable_network_policies" {
   type        = bool
   default     = false  # Note: Requires CNI plugin that supports Network Policies (e.g., Calico, Cilium)
 }
+
+# Jobs and CronJobs Variables
+variable "enable_jobs" {
+  description = "Enable Kubernetes Jobs (one-time tasks)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_cronjobs" {
+  description = "Enable Kubernetes CronJobs (scheduled tasks)"
+  type        = bool
+  default     = false
+}
+
+variable "cronjob_schedule" {
+  description = "Cron schedule for daily log rotation (default: daily at 2 AM)"
+  type        = string
+  default     = "0 2 * * *"  # Format: minute hour day month weekday
+}
