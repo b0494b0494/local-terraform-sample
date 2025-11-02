@@ -337,12 +337,12 @@ def after_request_metrics(response):
     """Request終了時のメトリクス収集とトレーシング"""
     duration = time.time() - request.start_time
     
-    # HTTP リクエスト総数（pathとstatus別）
+    # HTTP requests total (by path and status)
     path = request.path
     status = response.status_code
     _metrics['http_requests_total'][path][status] += 1
     
-    # リクエスト継続時間
+    # Request duration
     _metrics['http_request_duration_seconds'].append({
         'path': path,
         'method': request.method,
@@ -351,7 +351,7 @@ def after_request_metrics(response):
         'timestamp': datetime.utcnow().isoformat()
     })
     
-    # 最新100件のみ保持
+    # Keep only last 100 entries
     if len(_metrics['http_request_duration_seconds']) > 100:
         _metrics['http_request_duration_seconds'] = _metrics['http_request_duration_seconds'][-100:]
     
@@ -399,11 +399,11 @@ def metrics():
                 f'http_requests_total{{path="{path}",status="{status}",service="{APP_NAME}"}} {count}'
             )
     
-    # リクエスト継続時間（ヒストグラム形式の簡易版）
+    # Request duration (simplified histogram format)
     if _metrics['http_request_duration_seconds']:
         durations = [d['duration'] for d in _metrics['http_request_duration_seconds']]
         
-        # バケット（秒）: 0.1, 0.5, 1.0, 2.0, 5.0, +Inf
+        # Buckets (seconds): 0.1, 0.5, 1.0, 2.0, 5.0, +Inf
         buckets = [0.1, 0.5, 1.0, 2.0, 5.0, float('inf')]
         bucket_counts = [0] * len(buckets)
         
@@ -419,7 +419,7 @@ def metrics():
                 f'http_request_duration_seconds_bucket{{le="{le}",service="{APP_NAME}"}} {count}'
             )
         
-        # Summary統計
+        # Summary statistics
         avg_duration = sum(durations) / len(durations) if durations else 0
         output.append(f'http_request_duration_seconds_avg{{service="{APP_NAME}"}} {avg_duration}')
         output.append(f'http_request_duration_seconds_count{{service="{APP_NAME}"}} {len(durations)}')
