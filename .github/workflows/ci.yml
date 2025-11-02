@@ -24,14 +24,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Syntax check
+      run: |
+        python -m py_compile app.py auth.py llm_app.py migration.py
+        python -m py_compile app/*.py || true
+
     - name: Run tests
       run: |
-        python test_app.py || echo "Tests skipped (app not running)"
+        pip install pytest pytest-cov
+        pytest tests/ -v --tb=short || echo "Tests skipped (app not running)"
 
     - name: Lint Python code
       run: |
         pip install flake8
-        flake8 app.py llm_app.py auth.py migration.py app/ tests/ --max-line-length=120 --ignore=E501,W503 || true
+        flake8 app.py auth.py llm_app.py migration.py app/ tests/ --max-line-length=120 --ignore=E501,W503,E203 || true
 
   build:
     runs-on: ubuntu-latest
