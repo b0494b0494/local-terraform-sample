@@ -9,7 +9,7 @@ import logging
 import time
 
 from app import metrics, database, cache, config
-import auth  # Keep using auth.py for now, will migrate to auth_pkg later
+from auth_pkg import set_db_pool, rate_limit
 
 # Logging Configuration
 logging.basicConfig(
