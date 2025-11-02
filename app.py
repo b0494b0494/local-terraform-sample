@@ -424,7 +424,7 @@ def metrics():
         output.append(f'http_request_duration_seconds_avg{{service="{APP_NAME}"}} {avg_duration}')
         output.append(f'http_request_duration_seconds_count{{service="{APP_NAME}"}} {len(durations)}')
     
-    # データベース接続エラー
+    # Database connection errors
     output.append(
         f'app_database_connection_errors_total{{service="{APP_NAME}"}} {_metrics["app_database_connection_errors_total"]}'
     )
