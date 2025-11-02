@@ -380,55 +380,11 @@ def after_request_metrics(response):
     return response
 
 @app.route('/metrics')
-def metrics():
+def metrics_endpoint():
     """Prometheus format metrics endpoint"""
     logger.debug("Metrics requested")
-    
-    output = []
-    
-    # HTTP requests total (Prometheus format)
-    for path, status_counts in _metrics['http_requests_total'].items():
-        for status, count in status_counts.items():
-            output.append(
-                f'http_requests_total{{path="{path}",status="{status}",service="{APP_NAME}"}} {count}'
-            )
-    
-    # Request duration (simplified histogram format)
-    if _metrics['http_request_duration_seconds']:
-        durations = [d['duration'] for d in _metrics['http_request_duration_seconds']]
-        
-        # Buckets (seconds): 0.1, 0.5, 1.0, 2.0, 5.0, +Inf
-        buckets = [0.1, 0.5, 1.0, 2.0, 5.0, float('inf')]
-        bucket_counts = [0] * len(buckets)
-        
-        for duration in durations:
-            for i, bucket in enumerate(buckets):
-                if duration <= bucket:
-                    bucket_counts[i] += 1
-                    break
-        
-        for i, (bucket, count) in enumerate(zip(buckets, bucket_counts)):
-            le = bucket if bucket != float('inf') else '+Inf'
-            output.append(
-                f'http_request_duration_seconds_bucket{{le="{le}",service="{APP_NAME}"}} {count}'
-            )
-        
-        # Summary statistics
-        avg_duration = sum(durations) / len(durations) if durations else 0
-        output.append(f'http_request_duration_seconds_avg{{service="{APP_NAME}"}} {avg_duration}')
-        output.append(f'http_request_duration_seconds_count{{service="{APP_NAME}"}} {len(durations)}')
-    
-    # Database connection errors
-    output.append(
-        f'app_database_connection_errors_total{{service="{APP_NAME}"}} {_metrics["app_database_connection_errors_total"]}'
-    )
-    
-    # Redis?????
-    output.append(
-        f'app_redis_connection_errors_total{{service="{APP_NAME}"}} {_metrics["app_redis_connection_errors_total"]}'
-    )
-    
-    return '\n'.join(output) + '\n', 200, {'Content-Type': 'text/plain; version=0.0.4'}
+    output = metrics.get_prometheus_metrics(APP_NAME)
+    return output, 200, {'Content-Type': 'text/plain; version=0.0.4'}
 
 @app.route('/traces', methods=['GET'])
 def get_traces():
@@ -436,19 +392,11 @@ def get_traces():
     limit = request.args.get('limit', 50, type=int)
     trace_id = request.args.get('trace_id', None)
     
-    filtered_traces = _traces
-    
-    # Filter by trace_id if provided
-    if trace_id:
-        filtered_traces = [t for t in _traces if t['trace_id'] == trace_id]
-    
-    # Return latest traces
-    traces_to_return = filtered_traces[-limit:] if len(filtered_traces) > limit else filtered_traces
+    traces = metrics.get_traces(limit=limit, trace_id=trace_id)
     
     return jsonify({
-        'traces': traces_to_return,
-        'total': len(filtered_traces),
-        'returned': len(traces_to_return)
+        'traces': traces,
+        'total': len(metrics.get_traces())
     }), 200
 
 @app.route('/apm/stats', methods=['GET'])
