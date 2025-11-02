@@ -44,6 +44,22 @@ _metrics = {
 _traces = []  # List of trace spans
 _MAX_TRACES = 100  # Keep last 100 traces
 
+# APM (Application Performance Monitoring) hooks
+_apm_data = {
+    'operation_stats': defaultdict(lambda: {
+        'count': 0,
+        'total_duration_ms': 0.0,
+        'min_duration_ms': float('inf'),
+        'max_duration_ms': 0.0,
+        'errors': 0,
+        'last_executed': None
+    }),
+    'slow_operations': [],  # Operations taking > 1 second
+    'error_operations': []  # Operations that failed
+}
+_MAX_SLOW_OPS = 50
+_MAX_ERROR_OPS = 50
+
 # Redis接続設定
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
@@ -98,22 +114,37 @@ except Exception as e:
 
 def get_db_connection():
     """Get database connection from pool"""
+    operation = "database.get_connection"
+    start_time = time.time()
+    
     if db_pool is None:
         return None
     try:
-        return db_pool.getconn()
+        conn = db_pool.getconn()
+        duration_ms = (time.time() - start_time) * 1000
+        _record_apm_operation(operation, duration_ms, success=True)
+        return conn
     except Exception as e:
+        duration_ms = (time.time() - start_time) * 1000
         logger.error(f"Failed to get database connection: {e}")
         _metrics['app_database_connection_errors_total'] += 1
+        _record_apm_operation(operation, duration_ms, success=False, error=str(e))
         return None
 
 def return_db_connection(conn):
     """Return connection to pool"""
+    operation = "database.return_connection"
+    start_time = time.time()
+    
     if db_pool and conn:
         try:
             db_pool.putconn(conn)
+            duration_ms = (time.time() - start_time) * 1000
+            _record_apm_operation(operation, duration_ms, success=True)
         except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
             logger.error(f"Failed to return database connection: {e}")
+            _record_apm_operation(operation, duration_ms, success=False, error=str(e))
 
 def cache_response(ttl=REDIS_TTL):
     """レスポンスをキャッシュするデコレータ"""
@@ -129,12 +160,18 @@ def cache_response(ttl=REDIS_TTL):
             
             # キャッシュから取得を試みる
             try:
+                start_time = time.time()
                 cached = redis_client.get(cache_key)
+                duration_ms = (time.time() - start_time) * 1000
+                _record_apm_operation("cache.get", duration_ms, success=True)
+                
                 if cached:
                     logger.debug(f"Cache HIT: {cache_key}")
                     return jsonify(json.loads(cached)), 200
             except Exception as e:
+                duration_ms = (time.time() - start_time) * 1000
                 logger.warning(f"Cache read error: {e}")
+                _record_apm_operation("cache.get", duration_ms, success=False, error=str(e))
             
             # キャッシュがない場合は通常実行
             logger.debug(f"Cache MISS: {cache_key}")
@@ -392,6 +429,39 @@ def metrics():
     )
     
     return '\n'.join(output) + '\n', 200, {'Content-Type': 'text/plain; version=0.0.4'}
+
+def _record_apm_operation(operation, duration_ms, success=True, error=None):
+    """Record APM metrics for an operation"""
+    stats = _apm_data['operation_stats'][operation]
+    
+    stats['count'] += 1
+    stats['total_duration_ms'] += duration_ms
+    stats['min_duration_ms'] = min(stats['min_duration_ms'], duration_ms)
+    stats['max_duration_ms'] = max(stats['max_duration_ms'], duration_ms)
+    stats['last_executed'] = datetime.utcnow().isoformat()
+    
+    if not success:
+        stats['errors'] += 1
+        error_record = {
+            'operation': operation,
+            'timestamp': datetime.utcnow().isoformat(),
+            'error': error or 'Unknown error',
+            'duration_ms': duration_ms
+        }
+        _apm_data['error_operations'].append(error_record)
+        if len(_apm_data['error_operations']) > _MAX_ERROR_OPS:
+            _apm_data['error_operations'] = _apm_data['error_operations'][-_MAX_ERROR_OPS:]
+    
+    # Track slow operations (> 1 second)
+    if duration_ms > 1000:
+        slow_record = {
+            'operation': operation,
+            'timestamp': datetime.utcnow().isoformat(),
+            'duration_ms': duration_ms
+        }
+        _apm_data['slow_operations'].append(slow_record)
+        if len(_apm_data['slow_operations']) > _MAX_SLOW_OPS:
+            _apm_data['slow_operations'] = _apm_data['slow_operations'][-_MAX_SLOW_OPS:]
 
 @app.route('/db/status')
 def db_status():
