@@ -15,6 +15,7 @@ from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 import auth
 import time
+import uuid
 from collections import defaultdict
 
 # ロギング設定
@@ -38,6 +39,10 @@ _metrics = {
     'app_database_connection_errors_total': 0,
     'app_redis_connection_errors_total': 0,
 }
+
+# Distributed tracing storage (simplified OpenTelemetry-style)
+_traces = []  # List of trace spans
+_MAX_TRACES = 100  # Keep last 100 traces
 
 # Redis接続設定
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
@@ -278,12 +283,15 @@ def cache_clear():
 
 @app.before_request
 def before_request_metrics():
-    """Request開始時のメトリクス収集"""
+    """Request開始時のメトリクス収集とトレーシング"""
     request.start_time = time.time()
+    # Generate trace and span IDs (OpenTelemetry-style)
+    request.trace_id = uuid.uuid4().hex[:16]  # 16-char trace ID
+    request.span_id = uuid.uuid4().hex[:8]    # 8-char span ID
 
 @app.after_request
 def after_request_metrics(response):
-    """Request終了時のメトリクス収集"""
+    """Request終了時のメトリクス収集とトレーシング"""
     duration = time.time() - request.start_time
     
     # HTTP リクエスト総数（pathとstatus別）
@@ -303,6 +311,34 @@ def after_request_metrics(response):
     # 最新100件のみ保持
     if len(_metrics['http_request_duration_seconds']) > 100:
         _metrics['http_request_duration_seconds'] = _metrics['http_request_duration_seconds'][-100:]
+    
+    # Distributed tracing: Create span
+    span = {
+        'trace_id': getattr(request, 'trace_id', 'unknown'),
+        'span_id': getattr(request, 'span_id', 'unknown'),
+        'parent_span_id': None,  # Root span
+        'operation_name': f"{request.method} {path}",
+        'service_name': APP_NAME,
+        'start_time': datetime.utcnow().isoformat(),
+        'duration_ms': duration * 1000,
+        'status_code': status,
+        'attributes': {
+            'http.method': request.method,
+            'http.path': path,
+            'http.status_code': status,
+            'http.user_agent': request.headers.get('User-Agent', 'unknown'),
+        }
+    }
+    
+    # Add authentication info if available
+    if hasattr(g, 'current_user') and g.current_user:
+        span['attributes']['user'] = g.current_user
+    
+    _traces.append(span)
+    
+    # Keep only last MAX_TRACES
+    if len(_traces) > _MAX_TRACES:
+        _traces[:] = _traces[-_MAX_TRACES:]
     
     return response
 
