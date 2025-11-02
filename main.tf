@@ -46,7 +46,9 @@ resource "kubernetes_config_map" "app_config" {
 }
 
 # Deployment
+# Standard deployment (used when blue-green is disabled)
 resource "kubernetes_deployment" "sample_app" {
+  count = var.enable_blue_green ? 0 : 1
   metadata {
     name      = var.app_name
     namespace = kubernetes_namespace.sample_app.metadata[0].name
@@ -528,7 +530,9 @@ resource "kubernetes_deployment" "sample_app" {
 }
 
 # Service
+# Standard service (used when blue-green is disabled)
 resource "kubernetes_service" "sample_app" {
+  count = var.enable_blue_green ? 0 : 1
   metadata {
     name      = "${var.app_name}-service"
     namespace = kubernetes_namespace.sample_app.metadata[0].name

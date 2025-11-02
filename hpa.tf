@@ -22,7 +22,7 @@ resource "kubernetes_horizontal_pod_autoscaler" "sample_app" {
     scale_target_ref {
       api_version = "apps/v1"
       kind        = "Deployment"
-      name        = kubernetes_deployment.sample_app.metadata[0].name
+      name        = var.enable_blue_green ? (var.active_environment == "blue" ? module.blue_deployment[0].deployment_name : module.green_deployment[0].deployment_name) : kubernetes_deployment.sample_app[0].metadata[0].name
     }
 
     # Behavior configuration (Kubernetes 1.18+)

@@ -5,12 +5,12 @@ output "namespace" {
 
 output "deployment_name" {
   description = "Created Deployment name"
-  value       = kubernetes_deployment.sample_app.metadata[0].name
+  value       = var.enable_blue_green ? (var.active_environment == "blue" ? module.blue_deployment[0].deployment_name : module.green_deployment[0].deployment_name) : kubernetes_deployment.sample_app[0].metadata[0].name
 }
 
 output "service_name" {
   description = "Created Service name"
-  value       = kubernetes_service.sample_app.metadata[0].name
+  value       = var.enable_blue_green ? (kubernetes_service.app_main[0].metadata[0].name) : kubernetes_service.sample_app[0].metadata[0].name
 }
 
 output "configmap_name" {
