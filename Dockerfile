@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
 COPY app.py .
+COPY app_asgi.py .
 COPY llm_app.py .
 COPY migration.py .
 COPY app/ ./app/
