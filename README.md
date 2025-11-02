@@ -76,6 +76,7 @@ make test             # Run tests
 - **[docs/ENVIRONMENT_SETUP.md](./docs/ENVIRONMENT_SETUP.md)** - Complete setup guide
 - **[docs/PRACTICE.md](./docs/PRACTICE.md)** - Practice exercises (beginner to advanced)
 - **[docs/QUICKREF.md](./docs/QUICKREF.md)** - Quick reference (common commands)
+- **[docs/TESTING.md](./docs/TESTING.md)** - Testing guide (how to test features)
 - **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Troubleshooting guide
 
 ### Feature-Specific Guides
