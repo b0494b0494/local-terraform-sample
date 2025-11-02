@@ -31,7 +31,8 @@ Access: `http://localhost:8081`
 **Observability Features**:
 - Structured logging (JSON format)
 - Prometheus format metrics (`/metrics`)
-- Tracing (`/traces`)
+- Distributed tracing (`/traces`)
+- APM performance stats (`/apm/stats`)
 - Dashboard (open `observability_dashboard.html` in browser)
 
 ### 3. Deploy to Kubernetes with Terraform
@@ -51,7 +52,33 @@ kubectl get all -n sample-app
 kubectl port-forward -n sample-app svc/sample-app-service 8080:80
 ```
 
-### 4. Cleanup
+### 4. Deploy with Helm (Alternative)
+
+```bash
+# Install Helm chart
+helm install sample-app ./helm/sample-app
+
+# Install with custom values
+helm install sample-app ./helm/sample-app -f my-values.yaml
+
+# Upgrade
+helm upgrade sample-app ./helm/sample-app
+```
+
+### 5. Blue-Green Deployment
+
+```bash
+# Enable blue-green deployment
+terraform apply -var="enable_blue_green=true" -var="active_environment=blue"
+
+# Switch to green
+./scripts/blue-green-switch.sh
+
+# Rollback if needed
+./scripts/blue-green-rollback.sh
+```
+
+### 6. Cleanup
 
 ```bash
 terraform destroy
@@ -94,6 +121,7 @@ make test             # Run tests
 - **[docs/GRAFANA_GUIDE.md](./docs/GRAFANA_GUIDE.md)** - Grafana dashboards
 - **[docs/LOKI_GUIDE.md](./docs/LOKI_GUIDE.md)** - Loki log aggregation
 - **[docs/CICD_GUIDE.md](./docs/CICD_GUIDE.md)** - CI/CD workflows
+- **[docs/BLUE_GREEN_GUIDE.md](./docs/BLUE_GREEN_GUIDE.md)** - Blue-Green Deployment strategy
 
 ## LLM Observability Practice
 
@@ -134,14 +162,32 @@ open observability_dashboard.html
 - `DEBUG=True` is for development only
 - Do not include secrets in code (excluded in `.gitignore`)
 
+## Recent Features
+
+### Phase 3: Production Readiness ✅
+- **Advanced Observability**: Prometheus alerting rules, distributed tracing, APM hooks
+- **API Authentication**: JWT tokens, API keys, RBAC, rate limiting
+- **Blue-Green Deployment**: Zero-downtime deployments with rollback support
+
+### Phase 4: CI/CD & Helm ✅
+- **Helm Chart**: Complete Terraform to Helm conversion
+- **Advanced CI/CD**: Security scanning, multi-stage builds, automated testing
+
 ## File Structure
 
 ```
-app.py                      # Flask app
+app.py                      # Flask app (with auth, metrics, tracing)
 llm_app.py                  # LLM-style app (with observability)
+auth.py                     # Authentication module
 observability_dashboard.html # Observability dashboard
 docker-compose.yml          # Docker Compose configuration
-main.tf                     # Terraform configuration
+main.tf                     # Terraform configuration (standard deployment)
+deployment_strategy.tf      # Blue-Green deployment strategy
+alerting_rules.tf           # Prometheus alerting rules
+modules/blue-green/         # Blue-Green deployment module
+helm/sample-app/            # Helm chart
+tests/                      # Test suites
+scripts/                    # Helper scripts
 docs/                       # Documentation
   LEARNING_PATH.md          # Learning path (start here)
   ARCHITECTURE.md           # System architecture
@@ -149,7 +195,11 @@ docs/                       # Documentation
   PRACTICE.md               # Practice exercises
   QUICKREF.md               # Quick reference
   TROUBLESHOOTING.md        # Troubleshooting
+  BLUE_GREEN_GUIDE.md       # Blue-Green deployment guide
   [Feature guides]          # HPA, Storage, RBAC, Monitoring, etc.
+.github/workflows/         # CI/CD workflows
+  ci.yml                    # Basic CI
+  advanced-ci.yml           # Advanced CI/CD pipeline
 .cursorrules               # Cursor rules (security)
 ```
 
