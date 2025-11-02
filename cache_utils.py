@@ -5,19 +5,20 @@ Handles Redis connection and caching functionality
 """
 import redis
 from functools import wraps
-from flask import request, jsonify
+from typing import Optional, Dict, Any, Callable
+from flask import request, jsonify, Response
 import logging
 import config
 
 logger = logging.getLogger(__name__)
 
 # Redis Connection Configuration (from config module)
-REDIS_HOST = config.Config.REDIS_HOST
-REDIS_PORT = config.Config.REDIS_PORT
-REDIS_TTL = config.Config.REDIS_TTL
+REDIS_HOST: str = config.Config.REDIS_HOST
+REDIS_PORT: int = config.Config.REDIS_PORT
+REDIS_TTL: int = config.Config.REDIS_TTL
 
 # Redis Client Initialization
-redis_client = None
+redis_client: Optional[redis.Redis] = None
 try:
     redis_client = redis.Redis(
         host=REDIS_HOST,
@@ -35,16 +36,27 @@ except (redis.ConnectionError, redis.TimeoutError) as e:
     redis_client = None
 
 
-def get_redis_client():
-    """Get Redis client instance"""
+def get_redis_client() -> Optional[redis.Redis]:
+    """Get Redis client instance
+    
+    Returns:
+        Optional[redis.Redis]: Redis client if connected, None otherwise
+    """
     return redis_client
 
 
-def cache_response(ttl=REDIS_TTL):
-    """Decorator to cache Flask route responses"""
-    def decorator(f):
+def cache_response(ttl: int = REDIS_TTL) -> Callable:
+    """Decorator to cache Flask route responses
+    
+    Args:
+        ttl: Time to live for cached responses in seconds
+        
+    Returns:
+        Callable: Decorator function
+    """
+    def decorator(f: Callable) -> Callable:
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def decorated_function(*args: Any, **kwargs: Any) -> Response:
             # Skip caching if Redis is not available
             if redis_client is None:
                 return f(*args, **kwargs)
@@ -106,8 +118,12 @@ def clear_cache():
         return False
 
 
-def get_cache_stats():
-    """Get cache statistics"""
+def get_cache_stats() -> Dict[str, Any]:
+    """Get cache statistics
+    
+    Returns:
+        Dict[str, Any]: Cache statistics dictionary
+    """
     if redis_client is None:
         return {
             'status': 'not_configured',

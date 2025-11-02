@@ -53,8 +53,12 @@ def initialize_db_pool():
         return None
 
 
-def get_db_connection():
-    """Get database connection from pool"""
+def get_db_connection() -> Optional[connection]:
+    """Get database connection from pool
+    
+    Returns:
+        Optional[connection]: Database connection if successful, None otherwise
+    """
     operation = "database.get_connection"
     start_time = time.time()
     
@@ -73,8 +77,12 @@ def get_db_connection():
         return None
 
 
-def return_db_connection(conn):
-    """Return connection to pool"""
+def return_db_connection(conn: Optional[connection]) -> None:
+    """Return connection to pool
+    
+    Args:
+        conn: Database connection to return to pool
+    """
     operation = "database.return_connection"
     start_time = time.time()
     
@@ -91,19 +99,23 @@ def return_db_connection(conn):
 
 class DatabaseConnection:
     """Context manager for database connections"""
-    def __init__(self):
-        self.conn = None
+    def __init__(self) -> None:
+        self.conn: Optional[connection] = None
     
-    def __enter__(self):
+    def __enter__(self) -> Optional[connection]:
         self.conn = get_db_connection()
         return self.conn
     
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Optional[object]) -> bool:
         if self.conn:
             return_db_connection(self.conn)
         return False
 
 
-def get_pool():
-    """Get database pool (for sharing with auth module)"""
+def get_pool() -> Optional[pool.ThreadedConnectionPool]:
+    """Get database pool (for sharing with auth module)
+    
+    Returns:
+        Optional[pool.ThreadedConnectionPool]: Database connection pool if initialized
+    """
     return db_pool

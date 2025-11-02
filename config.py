@@ -5,7 +5,7 @@ Handles environment variable loading and validation
 """
 import os
 import logging
-from typing import Optional, Union
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class Config:
     RATE_LIMIT_ENABLED: bool = True
     
     @classmethod
-    def load(cls):
+    def load(cls) -> None:
         """Load configuration from environment variables"""
         # Application settings
         cls.APP_NAME = cls._get_env('APP_NAME', cls.APP_NAME)
@@ -77,13 +77,29 @@ class Config:
     
     @classmethod
     def _get_env(cls, key: str, default: Optional[str] = None) -> Optional[str]:
-        """Get environment variable as string"""
+        """Get environment variable as string
+        
+        Args:
+            key: Environment variable name
+            default: Default value if not set
+            
+        Returns:
+            Optional[str]: Environment variable value or default
+        """
         value = os.getenv(key, default)
         return value
     
     @classmethod
     def _get_env_int(cls, key: str, default: int) -> int:
-        """Get environment variable as integer"""
+        """Get environment variable as integer
+        
+        Args:
+            key: Environment variable name
+            default: Default value if not set or invalid
+            
+        Returns:
+            int: Environment variable value as integer or default
+        """
         value = os.getenv(key)
         if value is None:
             return default
@@ -95,15 +111,27 @@ class Config:
     
     @classmethod
     def _get_env_bool(cls, key: str, default: bool) -> bool:
-        """Get environment variable as boolean"""
+        """Get environment variable as boolean
+        
+        Args:
+            key: Environment variable name
+            default: Default value if not set
+            
+        Returns:
+            bool: Environment variable value as boolean or default
+        """
         value = os.getenv(key)
         if value is None:
             return default
         return value.lower() in ('true', '1', 'yes', 'on')
     
     @classmethod
-    def _validate(cls):
-        """Validate configuration values"""
+    def _validate(cls) -> None:
+        """Validate configuration values
+        
+        Raises:
+            ValueError: If configuration validation fails
+        """
         errors = []
         
         # Validate PORT

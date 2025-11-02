@@ -5,6 +5,7 @@ Handles Prometheus metrics, distributed tracing, and APM data
 """
 from collections import defaultdict
 from datetime import datetime
+from typing import Dict, List, Any, Optional
 import time
 import uuid
 
@@ -65,7 +66,18 @@ def record_http_request(path, method, status, duration, user=None):
         _metrics['http_request_duration_seconds'] = _metrics['http_request_duration_seconds'][-100:]
 
 
-def create_trace_span(trace_id, span_id, operation_name, duration_ms, status_code, method, path, user_agent, service_name='sample-app', user=None):
+def create_trace_span(
+    trace_id: str,
+    span_id: str,
+    operation_name: str,
+    duration_ms: float,
+    status_code: int,
+    method: str,
+    path: str,
+    user_agent: Optional[str],
+    service_name: str = 'sample-app',
+    user: Optional[str] = None
+) -> Dict[str, Any]:
     """Create a trace span"""
     span = {
         'trace_id': trace_id,
@@ -131,17 +143,17 @@ def record_apm_operation(operation, duration_ms, success=True, error=None):
             _apm_data['slow_operations'] = _apm_data['slow_operations'][-_MAX_SLOW_OPS:]
 
 
-def increment_database_errors():
+def increment_database_errors() -> None:
     """Increment database connection error counter"""
     _metrics['app_database_connection_errors_total'] += 1
 
 
-def increment_redis_errors():
+def increment_redis_errors() -> None:
     """Increment Redis connection error counter"""
     _metrics['app_redis_connection_errors_total'] += 1
 
 
-def get_prometheus_metrics(app_name):
+def get_prometheus_metrics(app_name: str) -> str:
     """Format metrics in Prometheus text format"""
     output = []
     
