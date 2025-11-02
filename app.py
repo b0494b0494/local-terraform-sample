@@ -61,7 +61,7 @@ def hello():
         'version': APP_VERSION,
         'environment': ENVIRONMENT,
         'timestamp': datetime.utcnow().isoformat(),
-        'cached': False,  # ???????????????True???
+        'cached': False,  # Will be True if served from cache
         'authenticated': getattr(g, 'authenticated', False)
     })
 

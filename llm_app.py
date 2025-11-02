@@ -13,17 +13,17 @@ from datetime import datetime
 from collections import defaultdict
 from functools import wraps
 
-# ???????
+# Logging Configuration
 logging.basicConfig(
     level=os.getenv('LOG_LEVEL', 'INFO').upper(),
-    format='%(message)s',  # JSON?????message??
+    format='%(message)s',  # JSON formatted message only
     handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# ConfigMap?????????
+# Configuration from ConfigMap (set as environment variables)
 APP_NAME = os.getenv('APP_NAME', 'llm-app')
 APP_VERSION = os.getenv('APP_VERSION', '1.0.0')
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')
@@ -36,7 +36,7 @@ metrics = {
     'errors_total': 0,
 }
 
-# ????????????OpenTelemetry??????
+# Distributed tracing storage (OpenTelemetry-style)
 traces = []
 
 def log_structured(level, message, **kwargs):
@@ -52,8 +52,8 @@ def log_structured(level, message, **kwargs):
     }
     logger.log(getattr(logging, level.upper()), json.dumps(log_data))
 
-def trace_span(operation_name):
-    """?????????????????"""
+def trace_span(operation_name: str):
+    """Distributed tracing decorator"""
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -130,8 +130,8 @@ def after_request(response):
     return response
 
 @app.route('/')
-def hello():
-    """??????????"""
+def hello() -> 'flask.Response':
+    """Root endpoint"""
     log_structured('INFO', 'Root endpoint accessed', 
                   path='/', remote_addr=request.remote_addr)
     return jsonify({
@@ -145,8 +145,8 @@ def hello():
 
 @app.route('/chat', methods=['POST'])
 @trace_span('chat_completion')
-def chat(trace_id):
-    """LLM?????API?????"""
+def chat(trace_id: str) -> 'flask.Response':
+    """LLM chat completion API endpoint"""
     try:
         data = request.get_json()
         user_message = data.get('message', '')
@@ -179,26 +179,26 @@ def chat(trace_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/metrics')
-def prometheus_metrics():
-    """Prometheus???????????????"""
+def prometheus_metrics() -> tuple:
+    """Prometheus metrics endpoint"""
     log_structured('DEBUG', 'Metrics endpoint accessed')
     
-    # Prometheus?????
+    # Prometheus format output
     output = []
     
-    # ??????
+    # Request count
     for path, count in metrics['requests_total'].items():
         output.append(f'llm_requests_total{{path="{path}",service="{APP_NAME}"}} {count}')
     
-    # ??????????
+    # Average duration
     if metrics['request_duration_seconds']:
         avg_duration = sum(d['duration'] for d in metrics['request_duration_seconds']) / len(metrics['request_duration_seconds'])
         output.append(f'llm_request_duration_seconds_avg{{service="{APP_NAME}"}} {avg_duration}')
     
-    # ?????
+    # Tokens generated
     output.append(f'llm_tokens_generated_total{{service="{APP_NAME}"}} {metrics["tokens_generated"]}')
     
-    # ????
+    # Errors
     output.append(f'llm_errors_total{{service="{APP_NAME}"}} {metrics["errors_total"]}')
     
     return '\n'.join(output) + '\n', 200, {'Content-Type': 'text/plain'}
@@ -208,15 +208,15 @@ def get_traces():
     """????????????"""
     log_structured('INFO', 'Traces endpoint accessed')
     return jsonify({
-        'traces': traces[-50:],  # ??50?
+        'traces': traces[-50:],  # Last 50 traces
         'total': len(traces)
     })
 
 @app.route('/logs')
-def get_logs():
-    """???????????"""
+def get_logs() -> 'flask.Response':
+    """Get logs information"""
     log_structured('INFO', 'Logs endpoint accessed')
-    # ???????????????????????
+    # In production, logs would be aggregated by logging infrastructure
     return jsonify({
         'message': 'Logs are streamed to stdout/stderr',
         'format': 'JSON structured logs',
@@ -224,8 +224,8 @@ def get_logs():
     })
 
 @app.route('/health')
-def health():
-    """Health check"""
+def health() -> 'flask.Response':
+    """Health check endpoint"""
     log_structured('DEBUG', 'Health check requested')
     return jsonify({
         'status': 'healthy',

@@ -6,8 +6,8 @@ import requests
 import time
 import sys
 
-def test_health_endpoint(base_url="http://localhost:8080"):
-    """??????????????????"""
+def test_health_endpoint(base_url: str = "http://localhost:8080") -> bool:
+    """Test health check endpoint"""
     try:
         response = requests.get(f"{base_url}/health", timeout=5)
         assert response.status_code == 200
@@ -20,8 +20,8 @@ def test_health_endpoint(base_url="http://localhost:8080"):
         print(f"? Health check failed: {e}")
         return False
 
-def test_ready_endpoint(base_url="http://localhost:8080"):
-    """Readiness???????????"""
+def test_ready_endpoint(base_url: str = "http://localhost:8080") -> bool:
+    """Test readiness endpoint"""
     try:
         response = requests.get(f"{base_url}/ready", timeout=5)
         assert response.status_code == 200
@@ -33,8 +33,8 @@ def test_ready_endpoint(base_url="http://localhost:8080"):
         print(f"? Readiness check failed: {e}")
         return False
 
-def test_root_endpoint(base_url="http://localhost:8080"):
-    """??????????????"""
+def test_root_endpoint(base_url: str = "http://localhost:8080") -> bool:
+    """Test root endpoint"""
     try:
         response = requests.get(base_url, timeout=5)
         assert response.status_code == 200
@@ -49,8 +49,8 @@ def test_root_endpoint(base_url="http://localhost:8080"):
         print(f"? Root endpoint failed: {e}")
         return False
 
-def test_info_endpoint(base_url="http://localhost:8080"):
-    """Info???????????"""
+def test_info_endpoint(base_url: str = "http://localhost:8080") -> bool:
+    """Test info endpoint"""
     try:
         response = requests.get(f"{base_url}/info", timeout=5)
         assert response.status_code == 200
