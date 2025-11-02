@@ -71,6 +71,7 @@ make test             # Run tests
 ## Learning Resources
 
 - **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - System architecture and diagrams
+- **[docs/ENVIRONMENT_SETUP.md](./docs/ENVIRONMENT_SETUP.md)** - Complete setup guide
 - **[docs/PRACTICE.md](./docs/PRACTICE.md)** - Practice exercises (beginner to advanced)
 - **[docs/QUICKREF.md](./docs/QUICKREF.md)** - Quick reference (common commands)
 - **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Troubleshooting guide
