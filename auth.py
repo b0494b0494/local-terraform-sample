@@ -8,6 +8,7 @@ import time
 import hmac
 import hashlib
 import secrets
+import bcrypt
 from functools import wraps
 from datetime import datetime, timedelta
 from flask import request, jsonify, g
@@ -23,6 +24,19 @@ JWT_EXPIRATION_HOURS = int(os.getenv('JWT_EXPIRATION_HOURS', '24'))
 # API Keys (in production, store in database or secrets manager)
 # Format: {api_key: {user: username, roles: [role1, role2], created_at: timestamp}}
 API_KEYS = {}
+
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt"""
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify a password against a hash"""
+    try:
+        return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+    except Exception as e:
+        logger.error(f"Password verification error: {e}")
+        return False
 
 def generate_api_key():
     """Generate a new API key"""

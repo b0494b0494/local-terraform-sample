@@ -650,6 +650,8 @@ def login():
         
         # Simple demo authentication (in production, check against database)
         # Demo credentials: user: admin, password: admin123
+        # For demo purposes, still using plain comparison
+        # In production, use: verify_password(password, stored_hash)
         if username == 'admin' and password == 'admin123':
             token = auth.create_jwt_token(username, roles=['admin', 'user'])
             api_key = auth.register_api_key(username, roles=['admin', 'user'])
