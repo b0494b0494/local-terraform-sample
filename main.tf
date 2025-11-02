@@ -85,6 +85,71 @@ resource "kubernetes_deployment" "sample_app" {
         # ServiceAccount for RBAC
         service_account_name = kubernetes_service_account.app_sa.metadata[0].name
 
+        # Init Containers
+        # These run before the main containers start
+        dynamic "init_container" {
+          for_each = var.enable_redis ? [1] : []
+          content {
+            name  = "wait-for-redis"
+            image = "busybox:1.36"
+
+            command = [
+              "sh",
+              "-c",
+              <<-EOT
+                echo "Waiting for Redis to be ready..."
+                until nc -z ${var.app_name}-redis 6379; do
+                  echo "Redis not ready, waiting..."
+                  sleep 2
+                done
+                echo "Redis is ready!"
+              EOT
+            ]
+          }
+        }
+
+        dynamic "init_container" {
+          for_each = [1]  # Always run config validation
+          content {
+            name  = "validate-config"
+            image = "busybox:1.36"
+
+            command = [
+              "sh",
+              "-c",
+              <<-EOT
+                echo "Validating configuration..."
+                # Check required environment variables are set
+                if [ -z "$APP_NAME" ] || [ -z "$APP_VERSION" ]; then
+                  echo "ERROR: Required environment variables not set"
+                  exit 1
+                fi
+                echo "Configuration validated successfully"
+              EOT
+            ]
+
+            env {
+              name = "APP_NAME"
+              value_from {
+                config_map_key_ref {
+                  name = kubernetes_config_map.app_config.metadata[0].name
+                  key  = "APP_NAME"
+                }
+              }
+            }
+
+            env {
+              name = "APP_VERSION"
+              value_from {
+                config_map_key_ref {
+                  name = kubernetes_config_map.app_config.metadata[0].name
+                  key  = "APP_VERSION"
+                }
+              }
+            }
+          }
+        }
+
         # Persistent Volume Claim for storage (if enabled)
         dynamic "volume" {
           for_each = var.enable_persistent_storage ? [1] : []
