@@ -377,7 +377,7 @@ def before_request_metrics():
 
 @app.after_request
 def after_request_metrics(response):
-    """Request終了時のメトリクス収集とトレーシング"""
+    """Collect metrics and tracing at request end"""
     duration = time.time() - request.start_time
     
     # HTTP requests total (by path and status)
