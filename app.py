@@ -106,6 +106,8 @@ try:
         test_conn = db_pool.getconn()
         db_pool.putconn(test_conn)
         logger.info(f"Database connected to {db_host}:{db_port}/{db_name}")
+        # Share database pool with auth module
+        auth.set_db_pool(db_pool)
     else:
         logger.info("Database credentials not set. Continuing without database.")
 except Exception as e:

@@ -14,6 +14,9 @@ from datetime import datetime, timedelta
 from flask import request, jsonify, g
 import logging
 
+# Database connection will be imported from app.py if available
+_db_pool = None
+
 logger = logging.getLogger(__name__)
 
 # JWT Secret (in production, use strong random secret from environment)
@@ -65,6 +68,101 @@ def generate_api_key():
     """Generate a new API key"""
     return secrets.token_urlsafe(32)
 
+def set_db_pool(db_pool):
+    """Set database connection pool (called from app.py)"""
+    global _db_pool
+    _db_pool = db_pool
+
+def store_api_key_in_db(api_key, user, roles=None):
+    """Store API key in database"""
+    if not _db_pool:
+        return False
+    
+    try:
+        conn = _db_pool.getconn()
+        if not conn:
+            return False
+        
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO api_keys (api_key, user_name, roles, created_at, is_active)
+            VALUES (%s, %s, %s, CURRENT_TIMESTAMP, TRUE)
+            ON CONFLICT (api_key) DO NOTHING
+        """, (api_key, user, roles or ['user']))
+        conn.commit()
+        cur.close()
+        _db_pool.putconn(conn)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to store API key in database: {e}")
+        if conn:
+            conn.rollback()
+            _db_pool.putconn(conn)
+        return False
+
+def get_api_key_from_db(api_key):
+    """Get API key data from database"""
+    if not _db_pool:
+        return None
+    
+    try:
+        conn = _db_pool.getconn()
+        if not conn:
+            return None
+        
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT api_key, user_name, roles, is_active, expires_at, last_used_at
+            FROM api_keys
+            WHERE api_key = %s
+        """, (api_key,))
+        row = cur.fetchone()
+        cur.close()
+        _db_pool.putconn(conn)
+        
+        if row and row[3]:  # is_active
+            return {
+                'api_key': row[0],
+                'user': row[1],
+                'roles': row[2],
+                'is_active': row[3],
+                'expires_at': row[4],
+                'last_used_at': row[5]
+            }
+        return None
+    except Exception as e:
+        logger.error(f"Failed to get API key from database: {e}")
+        if conn:
+            _db_pool.putconn(conn)
+        return None
+
+def update_api_key_last_used(api_key):
+    """Update last_used_at timestamp for API key"""
+    if not _db_pool:
+        return False
+    
+    try:
+        conn = _db_pool.getconn()
+        if not conn:
+            return False
+        
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE api_keys
+            SET last_used_at = CURRENT_TIMESTAMP
+            WHERE api_key = %s
+        """, (api_key,))
+        conn.commit()
+        cur.close()
+        _db_pool.putconn(conn)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to update API key last used: {e}")
+        if conn:
+            conn.rollback()
+            _db_pool.putconn(conn)
+        return False
+
 def register_api_key(user, roles=None):
     """Register a new API key for a user"""
     api_key = generate_api_key()
@@ -76,8 +174,9 @@ def register_api_key(user, roles=None):
         'created_at': datetime.utcnow().isoformat()
     }
     
-    # TODO: In production, also store in database
-    # store_api_key_in_db(api_key, user, roles)
+    # Also store in database if available
+    if _db_pool:
+        store_api_key_in_db(api_key, user, roles)
     
     logger.info(f"API key registered for user: {user}")
     return api_key
@@ -96,11 +195,25 @@ def validate_api_key(api_key):
             'authenticated': True
         }
     
-    # TODO: In production, also check database
-    # key_data = get_api_key_from_db(api_key)
-    # if key_data and key_data.get('is_active'):
-    #     update_api_key_last_used(api_key)
-    #     return {...}
+    # Check database if available
+    if _db_pool:
+        key_data = get_api_key_from_db(api_key)
+        if key_data and key_data.get('is_active'):
+            # Check expiration
+            if key_data.get('expires_at'):
+                expires_at = datetime.fromisoformat(key_data['expires_at'].replace('Z', '+00:00'))
+                if datetime.utcnow().replace(tzinfo=expires_at.tzinfo) > expires_at:
+                    logger.warning(f"API key expired: {api_key[:10]}...")
+                    return None
+            
+            # Update last used timestamp
+            update_api_key_last_used(api_key)
+            
+            return {
+                'user': key_data['user'],
+                'roles': key_data['roles'],
+                'authenticated': True
+            }
     
     return None
 
