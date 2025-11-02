@@ -68,11 +68,17 @@ def generate_api_key():
 def register_api_key(user, roles=None):
     """Register a new API key for a user"""
     api_key = generate_api_key()
+    
+    # Store in memory (backward compatibility)
     API_KEYS[api_key] = {
         'user': user,
         'roles': roles or ['user'],
-        'created_at': datetime.utcnow().isoformat()  # Already ISO string
+        'created_at': datetime.utcnow().isoformat()
     }
+    
+    # TODO: In production, also store in database
+    # store_api_key_in_db(api_key, user, roles)
+    
     logger.info(f"API key registered for user: {user}")
     return api_key
 
@@ -81,6 +87,7 @@ def validate_api_key(api_key):
     if not api_key:
         return None
     
+    # Check in-memory storage first (backward compatibility)
     key_data = API_KEYS.get(api_key)
     if key_data:
         return {
@@ -88,6 +95,13 @@ def validate_api_key(api_key):
             'roles': key_data['roles'],
             'authenticated': True
         }
+    
+    # TODO: In production, also check database
+    # key_data = get_api_key_from_db(api_key)
+    # if key_data and key_data.get('is_active'):
+    #     update_api_key_last_used(api_key)
+    #     return {...}
+    
     return None
 
 def create_jwt_token(user, roles=None):

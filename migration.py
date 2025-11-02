@@ -15,6 +15,58 @@ DB_NAME = os.getenv('DATABASE_NAME', 'sampleapp')
 DB_USER = os.getenv('DATABASE_USER', 'appuser')
 DB_PASSWORD = os.getenv('DATABASE_PASSWORD', 'demo_password_123')
 
+def create_api_keys_table(conn):
+    """Create API keys table for persistent storage"""
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id SERIAL PRIMARY KEY,
+                api_key VARCHAR(255) UNIQUE NOT NULL,
+                user_name VARCHAR(100) NOT NULL,
+                roles TEXT[] NOT NULL DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_used_at TIMESTAMP,
+                expires_at TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE,
+                INDEX idx_api_key (api_key),
+                INDEX idx_user_name (user_name)
+            )
+        """)
+        conn.commit()
+        logger.info("API keys table created successfully")
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Failed to create api_keys table: {e}")
+        raise
+    finally:
+        cur.close()
+
+def create_users_table(conn):
+    """Create users table for persistent user storage"""
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(100) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                roles TEXT[] NOT NULL DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE,
+                INDEX idx_username (username)
+            )
+        """)
+        conn.commit()
+        logger.info("Users table created successfully")
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Failed to create users table: {e}")
+        raise
+    finally:
+        cur.close()
+
 def create_schema():
     """Create database schema"""
     try:
