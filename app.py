@@ -126,7 +126,7 @@ def cache_stats():
 @app.route('/cache/clear', methods=['POST'])
 def cache_clear():
     """Clear cache endpoint"""
-    if cache_utils.redis_client is None:
+    if cache.redis_client is None:
         return jsonify({
             'status': 'error',
             'message': 'Redis not configured'
