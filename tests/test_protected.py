@@ -11,8 +11,12 @@ import os
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, parent_dir)
 
-# Import app from app.py (not from app/ package)
-import app as app_module
+# Import app from app.py (handle app/ package conflict)
+import importlib.util
+app_py_path = os.path.join(parent_dir, 'app.py')
+spec = importlib.util.spec_from_file_location("app_module", app_py_path)
+app_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(app_module)
 app = app_module.app
 
 
