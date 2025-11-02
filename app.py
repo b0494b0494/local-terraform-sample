@@ -56,84 +56,16 @@ except (redis.ConnectionError, redis.TimeoutError) as e:
     logger.warning(f"Redis connection failed: {e}. Continuing without cache.")
     redis_client = None
 
-# Database Connection Pool
-db_pool = None
-try:
-    db_host = os.getenv('DATABASE_HOST')
-    db_port = os.getenv('DATABASE_PORT', '5432')
-    db_name = os.getenv('DATABASE_NAME')
-    db_user = os.getenv('DATABASE_USER')
-    db_password = os.getenv('DATABASE_PASSWORD')
-    
-    if db_host and db_name and db_user and db_password:
-        db_pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=1,
-            maxconn=5,
-            host=db_host,
-            port=db_port,
-            database=db_name,
-            user=db_user,
-            password=db_password
-        )
-        # Test connection
-        test_conn = db_pool.getconn()
-        db_pool.putconn(test_conn)
-        logger.info(f"Database connected to {db_host}:{db_port}/{db_name}")
-        # Share database pool with auth module
-        auth.set_db_pool(db_pool)
-    else:
-        logger.info("Database credentials not set. Continuing without database.")
-except Exception as e:
-    logger.warning(f"Database connection failed: {e}. Continuing without database.")
-    db_pool = None
+# Database connection pool initialized via db_utils module
+db_pool = db_utils.initialize_db_pool()
+if db_utils.db_pool:
+    # Share database pool with auth module
+    auth.set_db_pool(db_utils.db_pool)
 
-def get_db_connection():
-    """Get database connection from pool"""
-    operation = "database.get_connection"
-    start_time = time.time()
-    
-    if db_pool is None:
-        return None
-    try:
-        conn = db_pool.getconn()
-        duration_ms = (time.time() - start_time) * 1000
-        metrics.record_apm_operation(operation, duration_ms, success=True)
-        return conn
-    except Exception as e:
-        duration_ms = (time.time() - start_time) * 1000
-        logger.error(f"Failed to get database connection: {e}")
-        metrics.increment_database_errors()
-        metrics.record_apm_operation(operation, duration_ms, success=False, error=str(e))
-        return None
-
-def return_db_connection(conn):
-    """Return connection to pool"""
-    operation = "database.return_connection"
-    start_time = time.time()
-    
-    if db_pool and conn:
-        try:
-            db_pool.putconn(conn)
-            duration_ms = (time.time() - start_time) * 1000
-            _record_apm_operation(operation, duration_ms, success=True)
-        except Exception as e:
-            duration_ms = (time.time() - start_time) * 1000
-            logger.error(f"Failed to return database connection: {e}")
-            metrics.record_apm_operation(operation, duration_ms, success=False, error=str(e))
-
-class DatabaseConnection:
-    """Context manager for database connections"""
-    def __init__(self):
-        self.conn = None
-    
-    def __enter__(self):
-        self.conn = get_db_connection()
-        return self.conn
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.conn:
-            return_db_connection(self.conn)
-        return False
+# Import database utilities
+get_db_connection = db_utils.get_db_connection
+return_db_connection = db_utils.return_db_connection
+DatabaseConnection = db_utils.DatabaseConnection
 
 def cache_response(ttl=REDIS_TTL):
     """Decorator to cache Flask route responses"""
