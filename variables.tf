@@ -200,3 +200,16 @@ variable "database_storage_size" {
   type        = string
   default     = "5Gi"
 }
+
+# Sidecar Container Variables
+variable "enable_sidecar_log_shipper" {
+  description = "Enable log shipper sidecar container"
+  type        = bool
+  default     = false
+}
+
+variable "enable_sidecar_metrics" {
+  description = "Enable metrics exporter sidecar container"
+  type        = bool
+  default     = false
+}
