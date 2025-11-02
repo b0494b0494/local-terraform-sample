@@ -603,31 +603,40 @@ def db_query():
     """Execute a simple database query (for testing)"""
     if db_pool is None:
         return jsonify({
-            'error': 'Database not configured'
+            'status': 'error',
+            'message': 'Database not configured'
         }), 503
     
     try:
-        query = request.json.get('query', 'SELECT NOW() as current_time;')
-        conn = get_db_connection()
-        if conn is None:
-            return jsonify({
-                'error': 'Failed to get database connection'
-            }), 500
+        data = request.json or {}
+        query = data.get('query', 'SELECT NOW() as current_time;')
         
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute(query)
-        results = cur.fetchall()
-        cur.close()
-        return_db_connection(conn)
-        
-        return jsonify({
-            'status': 'success',
-            'results': [dict(row) for row in results]
-        }), 200
+        # Use context manager to ensure connection is returned
+        with DatabaseConnection() as conn:
+            if conn is None:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Failed to get database connection'
+                }), 500
+            
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            try:
+                cur.execute(query)
+                results = cur.fetchall()
+                cur.close()
+                return jsonify({
+                    'status': 'success',
+                    'results': [dict(row) for row in results]
+                }), 200
+            except Exception as e:
+                conn.rollback()
+                cur.close()
+                raise e
     except Exception as e:
         logger.error(f"Database query failed: {e}")
         return jsonify({
-            'error': str(e)
+            'status': 'error',
+            'message': str(e)
         }), 500
 
 # Authentication Endpoints
