@@ -10,7 +10,9 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_DIR"
 
 # Get current active environment
+cd terraform
 CURRENT_ENV=$(terraform output -raw active_environment 2>/dev/null || echo "blue")
+cd ..
 NEW_ENV=""
 
 if [ "$CURRENT_ENV" = "blue" ]; then
@@ -44,10 +46,6 @@ fi
 echo "Updating active environment to $NEW_ENV..."
 terraform apply -var="active_environment=$NEW_ENV" -auto-approve
 cd ..
-
-# Apply terraform with new active environment
-echo "Updating active environment to $NEW_ENV..."
-cd terraform && terraform apply -var="active_environment=$NEW_ENV" -auto-approve
 
 echo ""
 echo "? Traffic switched to $NEW_ENV environment"
