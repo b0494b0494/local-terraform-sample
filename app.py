@@ -326,7 +326,7 @@ def cache_clear():
 
 @app.before_request
 def before_request_metrics():
-    """Request開始時のメトリクス収集とトレーシング"""
+    """Collect metrics and tracing at request start"""
     request.start_time = time.time()
     # Generate trace and span IDs (OpenTelemetry-style)
     request.trace_id = uuid.uuid4().hex[:16]  # 16-char trace ID
