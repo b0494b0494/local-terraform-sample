@@ -88,6 +88,7 @@ make test             # Run tests
 - **[docs/INIT_CONTAINERS_GUIDE.md](./docs/INIT_CONTAINERS_GUIDE.md)** - Init Containers (dependency management)
 - **[docs/DATABASE_GUIDE.md](./docs/DATABASE_GUIDE.md)** - PostgreSQL database integration
 - **[docs/SIDECAR_GUIDE.md](./docs/SIDECAR_GUIDE.md)** - Sidecar pattern (multi-container pods)
+- **[docs/AUTH_GUIDE.md](./docs/AUTH_GUIDE.md)** - API Authentication & Authorization
 - **[docs/JOBS_GUIDE.md](./docs/JOBS_GUIDE.md)** - Jobs and CronJobs (task scheduling)
 - **[docs/PROMETHEUS_GUIDE.md](./docs/PROMETHEUS_GUIDE.md)** - Prometheus monitoring
 - **[docs/GRAFANA_GUIDE.md](./docs/GRAFANA_GUIDE.md)** - Grafana dashboards
