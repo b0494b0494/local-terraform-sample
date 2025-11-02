@@ -35,6 +35,14 @@ ENVIRONMENT = config.Config.ENVIRONMENT
 
 # Initialize database pool
 db_pool = database.initialize_db_pool()
+if db_pool:
+    api_keys.set_db_pool(db_pool)
+
+# Initialize Redis cache (if configured)
+cache_client = cache.redis_client
+
+# Security
+security = HTTPBearer()
 
 
 @app.get("/")
