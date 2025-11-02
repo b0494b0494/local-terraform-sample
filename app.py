@@ -230,7 +230,7 @@ def hello():
         'version': APP_VERSION,
         'environment': ENVIRONMENT,
         'timestamp': datetime.utcnow().isoformat(),
-        'cached': False,  # キャッシュから取得された場合はTrueになる
+        'cached': False,  # ???????????????True???
         'authenticated': getattr(g, 'authenticated', False)
     })
 
@@ -317,7 +317,7 @@ def cache_stats():
 
 @app.route('/cache/clear', methods=['POST'])
 def cache_clear():
-    """キャッシュをクリア"""
+    """?????????"""
     if redis_client is None:
         return jsonify({
             'status': 'redis_not_available',
@@ -474,7 +474,7 @@ def metrics():
         f'app_database_connection_errors_total{{service="{APP_NAME}"}} {_metrics["app_database_connection_errors_total"]}'
     )
     
-    # Redis接続エラー
+    # Redis?????
     output.append(
         f'app_redis_connection_errors_total{{service="{APP_NAME}"}} {_metrics["app_redis_connection_errors_total"]}'
     )
@@ -745,7 +745,11 @@ def api_key_test():
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 8080))
-    # 本番環境ではdebug=Falseにすること
-    debug_mode = os.getenv('DEBUG', 'True').lower() == 'true'
-    logger.info(f"Starting {APP_NAME} v{APP_VERSION} on port {port} (environment: {ENVIRONMENT})")
+    # Default to False for security (set DEBUG=True explicitly for development)
+    debug_mode = os.getenv('DEBUG', 'False').lower() == 'true'
+    
+    if debug_mode and ENVIRONMENT != 'local':
+        logger.warning(f"DEBUG mode enabled in {ENVIRONMENT} environment - this should only be used in development!")
+    
+    logger.info(f"Starting {APP_NAME} v{APP_VERSION} on port {port} (environment: {ENVIRONMENT}, debug={debug_mode})")
     app.run(host='0.0.0.0', port=port, debug=debug_mode)

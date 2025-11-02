@@ -235,7 +235,11 @@ def health():
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 8080))
-    debug_mode = os.getenv('DEBUG', 'True').lower() == 'true'
+    # Default to False for security (set DEBUG=True explicitly for development)
+    debug_mode = os.getenv('DEBUG', 'False').lower() == 'true'
+    
+    if debug_mode and ENVIRONMENT != 'local':
+        logger.warning(f"DEBUG mode enabled in {ENVIRONMENT} environment - this should only be used in development!")
     
     log_structured('INFO', f'Starting {APP_NAME} v{APP_VERSION}',
                   port=port, environment=ENVIRONMENT)

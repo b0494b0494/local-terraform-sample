@@ -11,7 +11,7 @@ services:
     environment:
       - ENVIRONMENT=local-docker
       - PORT=8080
-      - DEBUG=True  # ??????False?????
+      - DEBUG=True  # Set to False for production
       - APP_NAME=sample-app
       - APP_VERSION=1.0.0
       - LOG_LEVEL=INFO
