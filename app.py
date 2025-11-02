@@ -119,7 +119,7 @@ def info():
 @app.route('/cache/stats')
 def cache_stats():
     """Return cache statistics"""
-    stats = cache_utils.get_cache_stats()
+    stats = cache.get_cache_stats()
     status_code = 200 if stats.get('status') != 'error' else 500
     return jsonify(stats), status_code
 
@@ -241,7 +241,7 @@ def apm_stats():
 @app.route('/db/status')
 def db_status():
     """Database connection status"""
-    if db_utils.db_pool is None:
+    if database.db_pool is None:
         return jsonify({
             'status': 'not_configured',
             'message': 'Database not configured'
@@ -275,7 +275,7 @@ def db_status():
 @app.route('/db/query', methods=['POST'])
 def db_query():
     """Execute a simple database query (for testing)"""
-    if db_utils.db_pool is None:
+    if database.db_pool is None:
         return jsonify({
             'status': 'error',
             'message': 'Database not configured'
