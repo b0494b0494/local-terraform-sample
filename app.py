@@ -231,7 +231,7 @@ def health():
 @app.route('/ready')
 def ready():
     """Readiness check endpoint"""
-    # データベース接続確認
+    # Check database connection if configured
     if db_pool:
         conn = get_db_connection()
         if conn:
