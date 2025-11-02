@@ -120,6 +120,6 @@ resource "kubernetes_persistent_volume_claim" "redis_data" {
       }
     }
 
-    storage_class_name = var.enable_persistent_storage ? kubernetes_storage_class.local_storage[0].metadata[0].name : null
+    storage_class_name = kubernetes_storage_class.local_storage.metadata[0].name
   }
 }
