@@ -134,13 +134,15 @@ llm_app.py                  # LLM-style app (with observability)
 observability_dashboard.html # Observability dashboard
 docker-compose.yml          # Docker Compose configuration
 main.tf                     # Terraform configuration
-k8s-manifests.yaml         # Kubernetes manifests (reference)
-docs/                      # Documentation
-  PRACTICE.md              # Practice exercises
-  QUICKREF.md              # Quick reference
-  TROUBLESHOOTING.md       # Troubleshooting
-  CHANGELOG.md             # Changelog
+docs/                       # Documentation
+  LEARNING_PATH.md          # Learning path (start here)
+  ARCHITECTURE.md           # System architecture
+  ENVIRONMENT_SETUP.md      # Setup guide
+  PRACTICE.md               # Practice exercises
+  QUICKREF.md               # Quick reference
+  TROUBLESHOOTING.md        # Troubleshooting
+  [Feature guides]          # HPA, Storage, RBAC, Monitoring, etc.
 .cursorrules               # Cursor rules (security)
 ```
 
-See each documentation file for details.
+See [Learning Resources](#learning-resources) section for all documentation.
