@@ -220,7 +220,7 @@ def health():
 def ready():
     """Readiness check endpoint"""
     # Check database connection if configured
-    if db_pool:
+    if db_utils.db_pool:
         conn = get_db_connection()
         if conn:
             try:
