@@ -287,7 +287,7 @@ def verify_jwt_token(token: str) -> Optional[Dict[str, Any]]:
         logger.warning(f"JWT verification failed: {e}")
         return None
 
-def require_auth(api_key_required=False, jwt_required=False, roles=None):
+def require_auth(api_key_required: bool = False, jwt_required: bool = False, roles: Optional[List[str]] = None) -> Callable:
     """
     Decorator to require authentication
     
@@ -296,7 +296,7 @@ def require_auth(api_key_required=False, jwt_required=False, roles=None):
         jwt_required: Require JWT token in Authorization header
         roles: List of required roles (any of these)
     """
-    def decorator(f):
+    def decorator(f: Callable) -> Callable:
         @wraps(f)
         def decorated_function(*args, **kwargs):
             auth_info = None
@@ -356,7 +356,7 @@ def require_auth(api_key_required=False, jwt_required=False, roles=None):
 # Rate limiting storage (in production, use Redis)
 _rate_limit_storage = {}
 
-def rate_limit(max_requests=60, window_seconds=60, key_func=None):
+def rate_limit(max_requests: int = 60, window_seconds: int = 60, key_func: Optional[Callable[[], str]] = None) -> Callable:
     """
     Simple rate limiting decorator
     
@@ -365,7 +365,7 @@ def rate_limit(max_requests=60, window_seconds=60, key_func=None):
         window_seconds: Time window in seconds
         key_func: Function to generate rate limit key (default: IP address)
     """
-    def decorator(f):
+    def decorator(f: Callable) -> Callable:
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if key_func:
@@ -401,7 +401,7 @@ def rate_limit(max_requests=60, window_seconds=60, key_func=None):
     return decorator
 
 # Initialize demo users with hashed passwords
-def _init_demo_users():
+def _init_demo_users() -> None:
     """Initialize demo users with hashed passwords"""
     DEMO_USERS['admin'] = {
         'password_hash': hash_password('admin123'),
