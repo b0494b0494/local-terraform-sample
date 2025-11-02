@@ -28,44 +28,29 @@ def create_api_keys_table(conn):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_used_at TIMESTAMP,
                 expires_at TIMESTAMP,
-                is_active BOOLEAN DEFAULT TRUE,
-                INDEX idx_api_key (api_key),
-                INDEX idx_user_name (user_name)
+                is_active BOOLEAN DEFAULT TRUE
             )
         """)
+        
+        # Create indexes separately (PostgreSQL syntax)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_api_keys_api_key ON api_keys(api_key);
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_api_keys_user_name ON api_keys(user_name);
+        """)
+        
         conn.commit()
-        logger.info("API keys table created successfully")
+        print("API keys table created successfully")
     except Exception as e:
         conn.rollback()
-        logger.error(f"Failed to create api_keys table: {e}")
+        print(f"Failed to create api_keys table: {e}")
         raise
     finally:
         cur.close()
 
-def create_users_table(conn):
-    """Create users table for persistent user storage"""
-    cur = conn.cursor()
-    try:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                username VARCHAR(100) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
-                roles TEXT[] NOT NULL DEFAULT '{}',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_active BOOLEAN DEFAULT TRUE,
-                INDEX idx_username (username)
-            )
-        """)
-        conn.commit()
-        logger.info("Users table created successfully")
-    except Exception as e:
-        conn.rollback()
-        logger.error(f"Failed to create users table: {e}")
-        raise
-    finally:
-        cur.close()
+# Note: create_users_table is now integrated into create_schema()
+# This function is kept for reference but users table is created in create_schema()
 
 def create_schema():
     """Create database schema"""
@@ -83,16 +68,24 @@ def create_schema():
         
         print(f"Connected to database: {DB_NAME}")
         
-        # Create users table
+        # Create users table (with auth fields)
         print("Creating users table...")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 username VARCHAR(100) UNIQUE NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
+                email VARCHAR(255) UNIQUE,
+                password_hash VARCHAR(255),
+                roles TEXT[] NOT NULL DEFAULT '{}',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE
             );
+        """)
+        
+        # Add indexes for users table
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
         """)
         
         # Create requests_log table
@@ -135,6 +128,10 @@ def create_schema():
                 FOR EACH ROW
                 EXECUTE FUNCTION update_updated_at_column();
         """)
+        
+        # Create API keys table
+        print("Creating api_keys table...")
+        create_api_keys_table(conn)
         
         cur.close()
         conn.close()
