@@ -436,6 +436,58 @@ def metrics():
     
     return '\n'.join(output) + '\n', 200, {'Content-Type': 'text/plain; version=0.0.4'}
 
+@app.route('/traces', methods=['GET'])
+def get_traces():
+    """Distributed traces endpoint (simplified)"""
+    limit = request.args.get('limit', 50, type=int)
+    trace_id = request.args.get('trace_id', None)
+    
+    filtered_traces = _traces
+    
+    # Filter by trace_id if provided
+    if trace_id:
+        filtered_traces = [t for t in _traces if t['trace_id'] == trace_id]
+    
+    # Return latest traces
+    traces_to_return = filtered_traces[-limit:] if len(filtered_traces) > limit else filtered_traces
+    
+    return jsonify({
+        'traces': traces_to_return,
+        'total': len(filtered_traces),
+        'returned': len(traces_to_return)
+    }), 200
+
+@app.route('/apm/stats', methods=['GET'])
+def apm_stats():
+    """APM performance statistics endpoint"""
+    # Calculate averages
+    stats_summary = {}
+    for operation, stats in _apm_data['operation_stats'].items():
+        avg_duration = stats['total_duration_ms'] / stats['count'] if stats['count'] > 0 else 0
+        error_rate = stats['errors'] / stats['count'] if stats['count'] > 0 else 0
+        
+        stats_summary[operation] = {
+            'count': stats['count'],
+            'avg_duration_ms': round(avg_duration, 2),
+            'min_duration_ms': round(stats['min_duration_ms'], 2) if stats['min_duration_ms'] != float('inf') else 0,
+            'max_duration_ms': round(stats['max_duration_ms'], 2),
+            'total_duration_ms': round(stats['total_duration_ms'], 2),
+            'errors': stats['errors'],
+            'error_rate': round(error_rate * 100, 2),  # Percentage
+            'last_executed': stats['last_executed']
+        }
+    
+    return jsonify({
+        'operation_stats': stats_summary,
+        'slow_operations': _apm_data['slow_operations'][-10:],  # Last 10 slow operations
+        'recent_errors': _apm_data['error_operations'][-10:],  # Last 10 errors
+        'summary': {
+            'total_operations': sum(s['count'] for s in _apm_data['operation_stats'].values()),
+            'total_errors': sum(s['errors'] for s in _apm_data['operation_stats'].values()),
+            'total_slow_operations': len(_apm_data['slow_operations'])
+        }
+    }), 200
+
 def _record_apm_operation(operation, duration_ms, success=True, error=None):
     """Record APM metrics for an operation"""
     stats = _apm_data['operation_stats'][operation]
