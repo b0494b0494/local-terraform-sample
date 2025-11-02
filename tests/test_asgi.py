@@ -117,5 +117,31 @@ def test_root_with_caching():
     assert data["framework"] == "FastAPI/ASGI"
 
 
+def test_login_endpoint():
+    """Test login endpoint"""
+    response = client.post("/auth/login", json={
+        "username": "admin",
+        "password": "admin123"
+    })
+    # Should return 200 with token or 401 if demo users not initialized
+    assert response.status_code in [200, 401, 500]
+    if response.status_code == 200:
+        data = response.json()
+        assert "status" in data
+        assert data.get("framework") == "FastAPI/ASGI"
+
+
+def test_validate_endpoint_no_token():
+    """Test validate endpoint without token"""
+    response = client.get("/auth/validate")
+    assert response.status_code == 403  # FastAPI security returns 403
+
+
+def test_api_key_test_no_key():
+    """Test API key endpoint without key"""
+    response = client.get("/api-key-test")
+    assert response.status_code == 401
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

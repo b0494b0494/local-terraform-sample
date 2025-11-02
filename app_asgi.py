@@ -3,13 +3,15 @@
 FastAPI (ASGI) Application for Terraform and Kubernetes Practice
 Gradual migration from Flask to FastAPI + Uvicorn
 """
-from fastapi import FastAPI, Request, status, Depends
+from fastapi import FastAPI, Request, status, Depends, HTTPException, Header
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime
 import logging
 from typing import Optional
 
 from app import config, database, cache
+from auth_pkg import users, jwt, api_keys, decorators
 
 # Logging Configuration
 logging.basicConfig(
@@ -236,6 +238,152 @@ async def cache_clear():
                 "framework": "FastAPI/ASGI"
             }
         )
+
+
+@app.post("/auth/login")
+async def login(request: Request):
+    """Login endpoint - FastAPI version"""
+    try:
+        body = await request.json()
+        username = body.get("username", "")
+        password = body.get("password", "")
+        
+        # Authenticate user
+        user_data = users.authenticate_user(username, password)
+        
+        if user_data:
+            # Generate JWT token
+            token = jwt.create_jwt_token(username, roles=user_data["roles"])
+            # Register API key
+            api_key = api_keys.register_api_key(username, roles=user_data["roles"])
+            
+            return {
+                "status": "success",
+                "token": token,
+                "api_key": api_key,
+                "user": username,
+                "roles": user_data["roles"],
+                "expires_in": jwt.JWT_EXPIRATION_HOURS * 3600,
+                "framework": "FastAPI/ASGI"
+            }
+        else:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid credentials"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+@app.get("/auth/validate")
+async def validate_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Validate JWT token - FastAPI version"""
+    try:
+        token = credentials.credentials
+        payload = jwt.verify_jwt_token(token)
+        
+        if payload:
+            return {
+                "status": "valid",
+                "user": payload.get("user") or payload.get("username"),
+                "roles": payload.get("roles", []),
+                "authenticated": True,
+                "framework": "FastAPI/ASGI"
+            }
+        else:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid token"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Token validation error: {e}")
+        raise HTTPException(
+            status_code=401,
+            detail="Token validation failed"
+        )
+
+
+@app.get("/auth/api-keys")
+async def list_api_keys(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """List API keys (admin only) - FastAPI version"""
+    try:
+        token = credentials.credentials
+        payload = jwt.verify_jwt_token(token)
+        
+        if not payload:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        # Check if user is admin
+        user_roles = payload.get("roles", [])
+        if "admin" not in user_roles:
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Get all API keys
+        all_keys = api_keys.API_KEYS.copy()
+        if db_pool:
+            # Also get from database if configured
+            db_keys = api_keys.get_all_api_keys_from_db()
+            if db_keys:
+                all_keys.update(db_keys)
+        
+        # Format response
+        keys_list = []
+        for key, info in all_keys.items():
+            keys_list.append({
+                "user": info.get("user", "unknown"),
+                "roles": info.get("roles", []),
+                "created_at": info.get("created_at", ""),
+                "key_preview": key[:8] + "..." if len(key) > 8 else key
+            })
+        
+        return {
+            "status": "success",
+            "api_keys": keys_list,
+            "total": len(keys_list),
+            "framework": "FastAPI/ASGI"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"API keys list error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+@app.get("/api-key-test")
+async def api_key_test(x_api_key: Optional[str] = Header(None)):
+    """Test API key authentication - FastAPI version"""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="API key required")
+    
+    # Verify API key
+    key_info = api_keys.get_api_key_from_db(x_api_key) if db_pool else api_keys.API_KEYS.get(x_api_key)
+    
+    if key_info:
+        # Update last used
+        if db_pool:
+            api_keys.update_api_key_last_used(x_api_key)
+        
+        return {
+            "status": "success",
+            "authenticated": True,
+            "user": key_info.get("user"),
+            "roles": key_info.get("roles", []),
+            "message": "API key authentication successful",
+            "framework": "FastAPI/ASGI"
+        }
+    else:
+        raise HTTPException(status_code=401, detail="Invalid API key")
 
 
 # Global exception handler
