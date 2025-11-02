@@ -10,11 +10,10 @@ from datetime import datetime
 import redis
 import json
 from functools import wraps
-import psycopg2
-from psycopg2 import pool
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor  # For dict cursor
 import auth
 import metrics
+import db_utils
 import time
 from collections import defaultdict
 
@@ -242,7 +241,7 @@ def ready():
     return jsonify({
         'status': 'ready',
         'service': APP_NAME,
-        'database_connected': db_pool is not None
+        'database_connected': db_utils.db_pool is not None
     }), 200
 
 @app.route('/info')
@@ -410,7 +409,7 @@ def apm_stats():
 @app.route('/db/status')
 def db_status():
     """Database connection status"""
-    if db_pool is None:
+    if db_utils.db_pool is None:
         return jsonify({
             'status': 'not_configured',
             'message': 'Database not configured'
@@ -444,7 +443,7 @@ def db_status():
 @app.route('/db/query', methods=['POST'])
 def db_query():
     """Execute a simple database query (for testing)"""
-    if db_pool is None:
+    if db_utils.db_pool is None:
         return jsonify({
             'status': 'error',
             'message': 'Database not configured'
