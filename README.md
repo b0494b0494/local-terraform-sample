@@ -71,6 +71,7 @@ make test             # Run tests
 ## Learning Resources
 
 - **[docs/LEARNING_PATH.md](./docs/LEARNING_PATH.md)** - Structured learning path (start here!)
+- **[docs/TASKS.md](./docs/TASKS.md)** - Incremental practice tasks (gradually add features!)
 - **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - System architecture and diagrams
 - **[docs/ENVIRONMENT_SETUP.md](./docs/ENVIRONMENT_SETUP.md)** - Complete setup guide
 - **[docs/PRACTICE.md](./docs/PRACTICE.md)** - Practice exercises (beginner to advanced)
